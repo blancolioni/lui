@@ -1,0 +1,12 @@
+syntax: glob
+*.o
+*.ali
+*~
+b~*.ad[bs]
+build/bin/*
+build/obj/*
+*.orig
+src/lui-paths.ads
+lui.gpr
+.aquarius-session
+trace.txt

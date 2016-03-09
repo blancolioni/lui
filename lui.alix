@@ -1,0 +1,25 @@
+project_name = Lui
+source_dir = src
+source_dir = src/gtk
+source_dir = src/sample
+main_unit = lui-driver
+exec_name = lui
+config_dir = config
+depend = { project = Tropos version = any }
+depend = { project = Wlib version = any }
+depend = { project = gtkada external = yes }
+path_unit = { unit = Lui.Paths
+              path = src/lui-paths.ads }
+builder_option = "-g"
+builder_option = "-k"
+builder_option = "-s"
+builder_option = "-j4"
+compiler_option = "-g"
+compiler_option = "-gnatwea"
+compiler_option = "-gnata"
+compiler_option = "-gnato"
+compiler_option = "-gnatyabcefhiklmnoprstOASux"
+compiler_option = "-gnat2012"
+compiler_option = "-fstack-check"
+linker_option = "-g"
+linker_option = "-lpixman-1"
