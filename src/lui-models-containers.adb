@@ -18,7 +18,7 @@ package body Lui.Models.Containers is
 
    function Child_Border_Colour
      (Model : Root_Container_Model'Class)
-      return Colour_Type
+      return Lui.Colours.Colour_Type
    is
    begin
       return Model.Child_Border_Colour;
@@ -148,7 +148,7 @@ package body Lui.Models.Containers is
 
    procedure Set_Child_Border_Style
      (Model  : in out Root_Container_Model'Class;
-      Colour : Colour_Type;
+      Colour : Lui.Colours.Colour_Type;
       Width  : Natural)
    is
    begin

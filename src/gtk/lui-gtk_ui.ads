@@ -33,7 +33,11 @@ package Lui.Gtk_UI is
    type Lui_Gtk is access all Lui_Gtk_Interface'Class;
 
    procedure Start
-     (Main : Lui_Gtk;
+     (Main : not null access Lui_Gtk_Interface'Class;
       Top  : Lui.Models.Object_Model);
+
+   procedure On_Model_Activation (Model : Lui.Models.Object_Model);
+
+   procedure On_Model_Changed (Model : Lui.Models.Object_Model);
 
 end Lui.Gtk_UI;

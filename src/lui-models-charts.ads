@@ -12,9 +12,11 @@ package Lui.Models.Charts is
    type Chart_Model is
      new Root_Object_Model with private;
 
-   procedure Initialise
-     (Chart : in out Chart_Model'Class;
-      Name    : in     String);
+   overriding procedure Initialise
+     (Chart   : in out Chart_Model;
+      Name    : in     String;
+      Tables  : Lui.Tables.Array_Of_Model_Tables := Lui.Tables.No_Tables;
+      Gadgets : Lui.Gadgets.Array_Of_Gadgets := Lui.Gadgets.No_Gadgets);
 
    procedure Append_Value
      (Model  : in out Chart_Model'Class;
@@ -52,8 +54,8 @@ package Lui.Models.Charts is
 
    overriding function Background
      (Item : Chart_Model)
-      return Lui.Rendering.Colour_Type
-   is (Lui.Rendering.White);
+      return Lui.Colours.Colour_Type
+   is (Lui.Colours.White);
 
 private
 

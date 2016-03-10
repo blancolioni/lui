@@ -1,6 +1,7 @@
 private with Ada.Containers.Vectors;
 private with Ada.Strings.Unbounded;
 
+with Lui.Colours;
 with Lui.Gadgets;
 with Lui.Rendering;
 with Lui.Tables;
@@ -18,14 +19,19 @@ package Lui.Models is
 
    function Name (Item : Root_Object_Model'Class) return String;
 
-   procedure Initialise (Item    : in out Root_Object_Model'Class;
+   procedure Initialise (Item    : in out Root_Object_Model;
                          Name    : in     String;
-                         Tables  : Lui.Tables.Array_Of_Model_Tables;
+                         Tables  : Lui.Tables.Array_Of_Model_Tables :=
+                           Lui.Tables.No_Tables;
                          Gadgets : Lui.Gadgets.Array_Of_Gadgets :=
                            Lui.Gadgets.No_Gadgets);
 
    procedure Set_Name (Item : in out Root_Object_Model'Class;
                        Name : String);
+
+   procedure Set_Eye_Position
+     (Item : in out Root_Object_Model;
+      X, Y, Z : Real);
 
    procedure Move (Item  : in out Root_Object_Model;
                    X, Y  : Integer);
@@ -33,6 +39,24 @@ package Lui.Models is
    procedure Get_Location
      (Item : Root_Object_Model;
       X, Y : out Integer);
+
+   procedure Get_Screen_Coordinates
+     (Model              : Root_Object_Model;
+      X, Y, Z            : Real;
+      Screen_X, Screen_Y : out Integer;
+      Screen_Z           : out Real);
+
+   procedure Get_Rotation
+     (Model   : Root_Object_Model'Class;
+      X, Y, Z : out Real);
+
+   function X_Rotation (Model : Root_Object_Model'Class) return Real;
+   function Y_Rotation (Model : Root_Object_Model'Class) return Real;
+   function Z_Rotation (Model : Root_Object_Model'Class) return Real;
+
+   function Eye_X (Model : Root_Object_Model'Class) return Real;
+   function Eye_Y (Model : Root_Object_Model'Class) return Real;
+   function Eye_Z (Model : Root_Object_Model'Class) return Real;
 
    procedure Resize (Item          : in out Root_Object_Model;
                      Width, Height : Natural);
@@ -107,10 +131,13 @@ package Lui.Models is
 
    procedure Set_Background
      (Item : in out Root_Object_Model'Class;
-      Colour : Lui.Rendering.Colour_Type);
+      Colour : Lui.Colours.Colour_Type);
 
    function Background (Item : Root_Object_Model)
-                        return Lui.Rendering.Colour_Type;
+                        return Lui.Colours.Colour_Type;
+
+   function Width (Item : Root_Object_Model) return Natural;
+   function Height (Item : Root_Object_Model) return Natural;
 
    procedure Before_Render
      (Item     : in out Root_Object_Model;
@@ -164,7 +191,7 @@ private
          X_Rotation    : Real := 0.0;
          Y_Rotation    : Real := 0.0;
          Z_Rotation    : Real := 0.0;
-         Background    : Lui.Rendering.Colour_Type := Lui.Rendering.Black;
+         Background    : Lui.Colours.Colour_Type := Lui.Colours.Black;
          Tables        : access Lui.Tables.Array_Of_Model_Tables;
          Gadgets       : access Lui.Gadgets.Array_Of_Gadgets;
       end record;

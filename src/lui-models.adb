@@ -1,5 +1,7 @@
 with Ada.Strings.Fixed;
 
+with Lui.Elementary_Functions;
+
 package body Lui.Models is
 
    ------------------
@@ -72,7 +74,7 @@ package body Lui.Models is
 
    function Background
      (Item : Root_Object_Model)
-      return Lui.Rendering.Colour_Type
+      return Lui.Colours.Colour_Type
    is
    begin
       return Item.Background;
@@ -113,6 +115,33 @@ package body Lui.Models is
       return List.Models.Last_Index;
    end Count;
 
+   -----------
+   -- Eye_X --
+   -----------
+
+   function Eye_X (Model : Root_Object_Model'Class) return Real is
+   begin
+      return Model.Eye_X;
+   end Eye_X;
+
+   -----------
+   -- Eye_Y --
+   -----------
+
+   function Eye_Y (Model : Root_Object_Model'Class) return Real is
+   begin
+      return Model.Eye_Y;
+   end Eye_Y;
+
+   -----------
+   -- Eye_Z --
+   -----------
+
+   function Eye_Z (Model : Root_Object_Model'Class) return Real is
+   begin
+      return Model.Eye_Z;
+   end Eye_Z;
+
    -------------
    -- Gadgets --
    -------------
@@ -141,6 +170,54 @@ package body Lui.Models is
       Y := Item.Y;
    end Get_Location;
 
+   ------------------
+   -- Get_Rotation --
+   ------------------
+
+   procedure Get_Rotation
+     (Model   : Root_Object_Model'Class;
+      X, Y, Z : out Real)
+   is
+   begin
+      X := Model.X_Rotation;
+      Y := Model.Y_Rotation;
+      Z := Model.Z_Rotation;
+   end Get_Rotation;
+
+   ----------------------------
+   -- Get_Screen_Coordinates --
+   ----------------------------
+
+   procedure Get_Screen_Coordinates
+     (Model              : Root_Object_Model;
+      X, Y, Z            : Real;
+      Screen_X, Screen_Y : out Integer;
+      Screen_Z           : out Real)
+   is
+      use Lui.Elementary_Functions;
+      X_2D  : constant Real :=
+                X * Cos (Model.Y_Rotation, 360.0)
+                + Z * Sin (Model.Y_Rotation, 360.0);
+      Y_2D  : constant Real :=
+                Y * Cos (Model.X_Rotation, 360.0)
+                + Z * Sin (Model.X_Rotation, 360.0);
+      Scale : constant Real :=
+                Real (Natural'Min (Model.Width, Model.Height));
+   begin
+      Screen_X := Integer (Scale * X_2D / Model.Eye_Z) + Model.Width / 2;
+      Screen_Y := Integer (Scale * Y_2D / Model.Eye_Z) + Model.Height / 2;
+      Screen_Z := Z * Cos (Model.X_Rotation, 360.0) * Cos (Model.Y_Rotation);
+   end Get_Screen_Coordinates;
+
+   ------------
+   -- Height --
+   ------------
+
+   function Height (Item : Root_Object_Model) return Natural is
+   begin
+      return Item.Height;
+   end Height;
+
    -----------------
    -- Idle_Update --
    -----------------
@@ -159,14 +236,14 @@ package body Lui.Models is
    ----------------
 
    procedure Initialise
-     (Item    : in out Root_Object_Model'Class;
+     (Item    : in out Root_Object_Model;
       Name    : in     String;
-      Tables  : Lui.Tables.Array_Of_Model_Tables;
+      Tables  : Lui.Tables.Array_Of_Model_Tables := Lui.Tables.No_Tables;
       Gadgets : Lui.Gadgets.Array_Of_Gadgets := Lui.Gadgets.No_Gadgets)
    is
    begin
       Item.Name := Ada.Strings.Unbounded.To_Unbounded_String (Name);
-      Item.Background := Lui.Rendering.Black;
+      Item.Background := Lui.Colours.Black;
       Item.Properties.Clear;
       Item.Tables :=
         new Lui.Tables.Array_Of_Model_Tables'(Tables);
@@ -305,11 +382,25 @@ package body Lui.Models is
 
    procedure Set_Background
      (Item : in out Root_Object_Model'Class;
-      Colour : Lui.Rendering.Colour_Type)
+      Colour : Lui.Colours.Colour_Type)
    is
    begin
       Item.Background := Colour;
    end Set_Background;
+
+   ----------------------
+   -- Set_Eye_Position --
+   ----------------------
+
+   procedure Set_Eye_Position
+     (Item : in out Root_Object_Model;
+      X, Y, Z : Real)
+   is
+   begin
+      Item.Eye_X := X;
+      Item.Eye_Y := Y;
+      Item.Eye_Z := Z;
+   end Set_Eye_Position;
 
    --------------
    -- Set_Name --
@@ -336,6 +427,42 @@ package body Lui.Models is
          return Item.Tables.all;
       end if;
    end Tables;
+
+   -----------
+   -- Width --
+   -----------
+
+   function Width (Item : Root_Object_Model) return Natural is
+   begin
+      return Item.Width;
+   end Width;
+
+   ----------------
+   -- X_Rotation --
+   ----------------
+
+   function X_Rotation (Model : Root_Object_Model'Class) return Real is
+   begin
+      return Model.X_Rotation;
+   end X_Rotation;
+
+   ----------------
+   -- Y_Rotation --
+   ----------------
+
+   function Y_Rotation (Model : Root_Object_Model'Class) return Real is
+   begin
+      return Model.Y_Rotation;
+   end Y_Rotation;
+
+   ----------------
+   -- Z_Rotation --
+   ----------------
+
+   function Z_Rotation (Model : Root_Object_Model'Class) return Real is
+   begin
+      return Model.Z_Rotation;
+   end Z_Rotation;
 
    ----------
    -- Zoom --

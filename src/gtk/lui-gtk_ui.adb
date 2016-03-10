@@ -29,6 +29,7 @@ with Cairo.Png;
 
 with WL.Bitmap_IO;
 
+with Lui.Colours;
 with Lui.Gadgets;
 with Lui.Handles;
 with Lui.Rendering;
@@ -68,7 +69,7 @@ package body Lui.Gtk_UI is
      (Renderer   : in out Cairo_Renderer;
       X, Y       : in     Integer;
       Radius     : in     Positive;
-      Colour     : in     Lui.Rendering.Colour_Type;
+      Colour     : in     Lui.Colours.Colour_Type;
       Filled     : in     Boolean;
       Line_Width : in     Natural := 1);
 
@@ -77,13 +78,13 @@ package body Lui.Gtk_UI is
      (Renderer : in out Cairo_Renderer;
       X1, Y1   : in     Integer;
       X2, Y2   : in     Integer;
-      Colour   : in     Lui.Rendering.Colour_Type);
+      Colour   : in     Lui.Colours.Colour_Type);
 
    overriding
    procedure Draw_Polygon
      (Renderer : in out Cairo_Renderer;
       Vertices : Lui.Rendering.Buffer_Points;
-      Colour   : Lui.Rendering.Colour_Type;
+      Colour   : Lui.Colours.Colour_Type;
       Filled   : Boolean);
 
    overriding
@@ -91,14 +92,14 @@ package body Lui.Gtk_UI is
      (Renderer : in out Cairo_Renderer;
       X, Y     : in     Integer;
       W, H     : in     Natural;
-      Colour   : in     Lui.Rendering.Colour_Type;
+      Colour   : in     Lui.Colours.Colour_Type;
       Filled   : in     Boolean);
 
    overriding
    procedure Draw_String (Renderer : in out Cairo_Renderer;
                           X, Y     : in     Integer;
                           Size     : in     Positive;
-                          Colour   : in     Lui.Rendering.Colour_Type;
+                          Colour   : in     Lui.Colours.Colour_Type;
                           Text     : in     String);
 
    overriding
@@ -118,7 +119,7 @@ package body Lui.Gtk_UI is
       return Boolean;
 
    procedure Set_Colour (Renderer : Cairo_Renderer'Class;
-                         Colour   : Lui.Rendering.Colour_Type);
+                         Colour   : Lui.Colours.Colour_Type);
 
    procedure Set_Line_Width (Renderer : Cairo_Renderer'Class;
                              Width    : Natural);
@@ -141,6 +142,7 @@ package body Lui.Gtk_UI is
          Dragging     : Boolean := False;
          Last_Drag_X  : Integer := Integer'First;
          Last_Drag_Y  : Integer := Integer'First;
+         Active       : Lui.Models.Object_Model := null;
       end record;
 
    overriding procedure Show_Model
@@ -225,12 +227,12 @@ package body Lui.Gtk_UI is
       Width, Height : Glib.Gdouble;
       Model         : Lui.Models.Object_Model);
 
-   procedure Show_Gadgets
-     (Model   : Lui.Models.Object_Model;
-      Gadgets : Lui.Gadgets.Array_Of_Gadgets);
+   procedure Show_Gadget
+     (Gadget : Lui.Gadgets.Model_Gadget;
+      Model  : Lui.Models.Object_Model);
 
-   procedure Show_Info_Boxes
-     (Info      : Lui.Tables.Array_Of_Model_Tables);
+   procedure Show_Table
+     (Table : Lui.Tables.Model_Table);
 
 --     procedure Show_Properties
 --       (Model   : Lui.Models.Object_Model);
@@ -411,7 +413,7 @@ package body Lui.Gtk_UI is
      (Renderer   : in out Cairo_Renderer;
       X, Y       : in     Integer;
       Radius     : in     Positive;
-      Colour     : in     Lui.Rendering.Colour_Type;
+      Colour     : in     Lui.Colours.Colour_Type;
       Filled     : in     Boolean;
       Line_Width : in     Natural := 1)
    is
@@ -496,7 +498,7 @@ package body Lui.Gtk_UI is
      (Renderer : in out Cairo_Renderer;
       X1, Y1   : in     Integer;
       X2, Y2   : in     Integer;
-      Colour   : in     Lui.Rendering.Colour_Type)
+      Colour   : in     Lui.Colours.Colour_Type)
    is
       use Glib;
    begin
@@ -517,7 +519,7 @@ package body Lui.Gtk_UI is
    overriding procedure Draw_Polygon
      (Renderer : in out Cairo_Renderer;
       Vertices : Lui.Rendering.Buffer_Points;
-      Colour   : Lui.Rendering.Colour_Type;
+      Colour   : Lui.Colours.Colour_Type;
       Filled   : Boolean)
    is
       use Glib;
@@ -563,7 +565,7 @@ package body Lui.Gtk_UI is
      (Renderer : in out Cairo_Renderer;
       X, Y     : in     Integer;
       W, H     : in     Natural;
-      Colour   : in     Lui.Rendering.Colour_Type;
+      Colour   : in     Lui.Colours.Colour_Type;
       Filled   : in     Boolean)
    is
       use Glib;
@@ -590,7 +592,7 @@ package body Lui.Gtk_UI is
    procedure Draw_String (Renderer : in out Cairo_Renderer;
                           X, Y     : in     Integer;
                           Size     : in     Positive;
-                          Colour   : in     Lui.Rendering.Colour_Type;
+                          Colour   : in     Lui.Colours.Colour_Type;
                           Text     : in     String)
    is
    begin
@@ -835,22 +837,58 @@ package body Lui.Gtk_UI is
       return True;
    end Model_Zoom_Handler;
 
+   -------------------------
+   -- On_Model_Activation --
+   -------------------------
+
+   procedure On_Model_Activation (Model : Lui.Models.Object_Model) is
+   begin
+      Select_Model (Model);
+   end On_Model_Activation;
+
+   ----------------------
+   -- On_Model_Changed --
+   ----------------------
+
+   procedure On_Model_Changed (Model : Lui.Models.Object_Model) is
+   begin
+      Select_Model (Model);
+   end On_Model_Changed;
+
    ------------------
    -- Select_Model --
    ------------------
 
    procedure Select_Model (Model : Lui.Models.Object_Model) is
       use type Lui.Models.Object_Model;
+      Found : Boolean := False;
    begin
+      if Model = State.Active then
+         return;
+      end if;
+
+      State.Active := Model;
+
       for I in 1 .. State.Models.Count loop
          if State.Models.Model (I) = Model then
             State.Main.Select_Feature
               (UI_Model, Model, State.Models.Widgets (I));
-            return;
+            Found := True;
+            exit;
          end if;
       end loop;
 
-      State.Models.Append (Model);
+      if not Found then
+         State.Models.Append (Model);
+      end if;
+
+      State.Main.Clear_Features (UI_Table);
+      State.Main.Clear_Features (UI_Gadget);
+
+      for Table of Model.Tables loop
+         Show_Table (Table);
+      end loop;
+
    end Select_Model;
 
    ----------------
@@ -858,7 +896,7 @@ package body Lui.Gtk_UI is
    ----------------
 
    procedure Set_Colour (Renderer : Cairo_Renderer'Class;
-                         Colour   : Lui.Rendering.Colour_Type)
+                         Colour   : Lui.Colours.Colour_Type)
    is
       use Glib;
       R : constant Gdouble := Gdouble (Colour.Red);
@@ -899,160 +937,30 @@ package body Lui.Gtk_UI is
    -- Show_Gadgets --
    ------------------
 
-   procedure Show_Gadgets
-     (Model   : Lui.Models.Object_Model;
-      Gadgets : Lui.Gadgets.Array_Of_Gadgets)
+   procedure Show_Gadget
+     (Gadget : Lui.Gadgets.Model_Gadget;
+      Model  : Lui.Models.Object_Model)
    is
    begin
-
-      State.Main.Clear_Features (UI_Gadget);
-
-      for Gadget of Gadgets loop
-         if Gadget.all in Lui.Gadgets.Root_Button_Gadget'Class then
-            declare
-               Button : Gtk.Button.Gtk_Button;
-            begin
-               Gtk.Button.Gtk_New (Button, Gadget.Name);
-
-               Gadget_Button_Callback.Connect
-                 (Button, Gtk.Button.Signal_Clicked,
-                  Gadget_Button_Callback.To_Marshaller
-                    (Handle_Gadget_Button'Access),
-                  ((Gadget, Model)));
-               Button.Show_All;
-
-               State.Main.Append_Feature (UI_Gadget, Gadget, Button);
-            end;
-         else
-            null;
-         end if;
-      end loop;
-
-   end Show_Gadgets;
-
-   ---------------------
-   -- Show_Info_Boxes --
-   ---------------------
-
-   procedure Show_Info_Boxes
-     (Info      : Lui.Tables.Array_Of_Model_Tables)
-   is
-   begin
-
-      State.Main.Clear_Features (UI_Table);
-
-      for Table of Info loop
+      if Gadget.all in Lui.Gadgets.Root_Button_Gadget'Class then
          declare
-            Tree : Gtk.Tree_View.Gtk_Tree_View;
-            Store : Gtk.Tree_Store.Gtk_Tree_Store;
-            Types : Glib.GType_Array (0 .. Glib.Guint (Table.Column_Count));
-            Label : Gtk.Label.Gtk_Label;
-            Max_Levels : constant := 16;
-            Parent_Iters : array (1 .. Max_Levels)
-              of Gtk.Tree_Model.Gtk_Tree_Iter :=
-                (others => Gtk.Tree_Model.Null_Iter);
-            Parent_Rows  : array (1 .. Max_Levels) of Natural :=
-                                                (others => 0);
-            Current_Level                   : Positive := 1;
-            Info_Box : Gtk.Box.Gtk_Box;
+            Button : Gtk.Button.Gtk_Button;
          begin
+            Gtk.Button.Gtk_New (Button, Gadget.Name);
 
-            Gtk.Box.Gtk_New
-              (Info_Box, Gtk.Enums.Orientation_Vertical, 0);
+            Gadget_Button_Callback.Connect
+              (Button, Gtk.Button.Signal_Clicked,
+               Gadget_Button_Callback.To_Marshaller
+                 (Handle_Gadget_Button'Access),
+               ((Gadget, Model)));
+            Button.Show_All;
 
-            Gtk.Label.Gtk_New (Label, Table.Name);
-            Label.Show_All;
-
-            Info_Box.Pack_Start (Label,
-                                 Expand   => False,
-                                 Fill     => True,
-                                 Padding  => 0);
-
-            Types (0) := Glib.GType_Int;
-            for I in 1 .. Table.Column_Count loop
-               Types (Glib.Guint (I)) := Glib.GType_String;
-            end loop;
-
-            Gtk.Tree_Store.Gtk_New (Store, Types);
-
-            for I in 1 .. Table.Row_Count loop
-               declare
-                  Result : Gtk.Tree_Model.Gtk_Tree_Iter;
-                  Parent_Iter : Gtk.Tree_Model.Gtk_Tree_Iter :=
-                                  Gtk.Tree_Model.Null_Iter;
-                  Parent_Row : constant Natural :=
-                                 Table.Parent_Row (I);
-               begin
-                  Current_Level := 1;
-                  if Parent_Row /= 0 then
-                     for P_Index in Parent_Rows'Range loop
-                        if Parent_Rows (P_Index) = Parent_Row then
-                           Parent_Iter := Parent_Iters (P_Index);
-                           Current_Level := P_Index + 1;
-                           exit;
-                        end if;
-                     end loop;
-                  end if;
-
-                  Parent_Rows (Current_Level) := I;
-                  Store.Append (Result, Parent_Iter);
-                  Parent_Iters (Current_Level) := Result;
-
-                  Store.Set (Result, 0, Glib.Gint (I));
-                  for J in 1 .. Table.Column_Count loop
-                     Store.Set (Result, Glib.Gint (J),
-                                Table.Cell_Text (I, J));
-                  end loop;
-               end;
-            end loop;
-
-            Gtk.Tree_View.Gtk_New (Tree, Store);
-
-            for I in 1 .. Table.Column_Count loop
-               declare
-                  Text_Render : Gtk.Cell_Renderer_Text.Gtk_Cell_Renderer_Text;
-                  Text_Column : Gtk.Tree_View_Column.Gtk_Tree_View_Column;
-                  Num         : Glib.Gint;
-                  pragma Unreferenced (Num);
-               begin
-                  Gtk.Cell_Renderer_Text.Gtk_New (Text_Render);
-                  Gtk.Tree_View_Column.Gtk_New (Text_Column);
-                  Num := Tree.Append_Column (Text_Column);
-                  Text_Column.Pack_Start (Text_Render, True);
-                  Text_Column.Set_Sizing
-                    (Gtk.Tree_View_Column.Tree_View_Column_Autosize);
-                  Text_Column.Set_Title (Table.Heading_Column_Text (I));
-                  Text_Column.Add_Attribute (Text_Render, "text",
-                                             Glib.Gint (I));
-               end;
-            end loop;
-
-            Select_Item_Handler.Connect
-              (Tree, "row-activated",
-               Info_Select_Row_Callback'Access,
-               Table);
-
-            declare
-               Scroll : Gtk.Scrolled_Window.Gtk_Scrolled_Window;
-            begin
-               Gtk.Scrolled_Window.Gtk_New
-                 (Scroll);
-               Scroll.Add (Tree);
-               Scroll.Show_All;
-               Info_Box.Pack_Start (Scroll,
-                                    Expand   => True,
-                                    Fill     => True,
-                                    Padding  => 0);
-            end;
-
-            State.Main.Append_Feature
-              (UI_Table, Table, Info_Box);
-
+            State.Main.Append_Feature (UI_Gadget, Gadget, Button);
          end;
-
-      end loop;
-
-   end Show_Info_Boxes;
+      else
+         null;
+      end if;
+   end Show_Gadget;
 
    ----------------
    -- Show_Model --
@@ -1081,8 +989,9 @@ package body Lui.Gtk_UI is
       Model.After_Render (Renderer);
 
       if Model.Properties_Changed then
-         --  Show_Properties (Model);
-         Show_Gadgets (Model, Model.Gadgets);
+         for Gadget of Model.Gadgets loop
+            Show_Gadget (Gadget, Model);
+         end loop;
 
          Model.Clear_Changed;
       end if;
@@ -1100,7 +1009,10 @@ package body Lui.Gtk_UI is
          end loop;
 
          if Refresh_Tables then
-            Show_Info_Boxes (Model.Tables);
+            State.Main.Clear_Features (UI_Table);
+            for Table of Model.Tables loop
+               Show_Table (Table);
+            end loop;
          end if;
       end;
 
@@ -1119,12 +1031,126 @@ package body Lui.Gtk_UI is
       Select_Model (Model);
    end Show_Model;
 
+   ----------------
+   -- Show_Table --
+   ----------------
+
+   procedure Show_Table
+     (Table : Lui.Tables.Model_Table)
+   is
+      Tree : Gtk.Tree_View.Gtk_Tree_View;
+      Store : Gtk.Tree_Store.Gtk_Tree_Store;
+      Types : Glib.GType_Array (0 .. Glib.Guint (Table.Column_Count));
+      Label : Gtk.Label.Gtk_Label;
+      Max_Levels : constant := 16;
+      Parent_Iters : array (1 .. Max_Levels)
+        of Gtk.Tree_Model.Gtk_Tree_Iter :=
+          (others => Gtk.Tree_Model.Null_Iter);
+      Parent_Rows                     : array (1 .. Max_Levels) of Natural :=
+                                          (others => 0);
+      Current_Level                   : Positive := 1;
+      Info_Box                        : Gtk.Box.Gtk_Box;
+   begin
+
+      Gtk.Box.Gtk_New
+        (Info_Box, Gtk.Enums.Orientation_Vertical, 0);
+
+      Gtk.Label.Gtk_New (Label, Table.Name);
+      Label.Show_All;
+
+      Info_Box.Pack_Start (Label,
+                           Expand   => False,
+                           Fill     => True,
+                           Padding  => 0);
+
+      Types (0) := Glib.GType_Int;
+      for I in 1 .. Table.Column_Count loop
+         Types (Glib.Guint (I)) := Glib.GType_String;
+      end loop;
+
+      Gtk.Tree_Store.Gtk_New (Store, Types);
+
+      for I in 1 .. Table.Row_Count loop
+         declare
+            Result      : Gtk.Tree_Model.Gtk_Tree_Iter;
+            Parent_Iter : Gtk.Tree_Model.Gtk_Tree_Iter :=
+                            Gtk.Tree_Model.Null_Iter;
+            Parent_Row  : constant Natural :=
+                            Table.Parent_Row (I);
+         begin
+            Current_Level := 1;
+            if Parent_Row /= 0 then
+               for P_Index in Parent_Rows'Range loop
+                  if Parent_Rows (P_Index) = Parent_Row then
+                     Parent_Iter := Parent_Iters (P_Index);
+                     Current_Level := P_Index + 1;
+                     exit;
+                  end if;
+               end loop;
+            end if;
+
+            Parent_Rows (Current_Level) := I;
+            Store.Append (Result, Parent_Iter);
+            Parent_Iters (Current_Level) := Result;
+
+            Store.Set (Result, 0, Glib.Gint (I));
+            for J in 1 .. Table.Column_Count loop
+               Store.Set (Result, Glib.Gint (J),
+                          Table.Cell_Text (I, J));
+            end loop;
+         end;
+      end loop;
+
+      Gtk.Tree_View.Gtk_New (Tree, Store);
+
+      for I in 1 .. Table.Column_Count loop
+         declare
+            Text_Render : Gtk.Cell_Renderer_Text.Gtk_Cell_Renderer_Text;
+            Text_Column : Gtk.Tree_View_Column.Gtk_Tree_View_Column;
+            Num         : Glib.Gint;
+            pragma Unreferenced (Num);
+         begin
+            Gtk.Cell_Renderer_Text.Gtk_New (Text_Render);
+            Gtk.Tree_View_Column.Gtk_New (Text_Column);
+            Num := Tree.Append_Column (Text_Column);
+            Text_Column.Pack_Start (Text_Render, True);
+            Text_Column.Set_Sizing
+              (Gtk.Tree_View_Column.Tree_View_Column_Autosize);
+            Text_Column.Set_Title (Table.Heading_Column_Text (I));
+            Text_Column.Add_Attribute (Text_Render, "text",
+                                       Glib.Gint (I));
+         end;
+      end loop;
+
+      Select_Item_Handler.Connect
+        (Tree, "row-activated",
+         Info_Select_Row_Callback'Access,
+         Table);
+
+      declare
+         Scroll : Gtk.Scrolled_Window.Gtk_Scrolled_Window;
+      begin
+         Gtk.Scrolled_Window.Gtk_New
+           (Scroll);
+         Scroll.Add (Tree);
+         Scroll.Show_All;
+         Info_Box.Pack_Start (Scroll,
+                              Expand   => True,
+                              Fill     => True,
+                              Padding  => 0);
+      end;
+
+      State.Main.Append_Feature
+        (UI_Table, Table, Info_Box);
+
+   end Show_Table;
+
    -----------
    -- Start --
    -----------
 
    procedure Start
-     (Main : Lui_Gtk;
+     (Main : not null access Lui_Gtk_Interface'Class;
       Top  : Lui.Models.Object_Model)
    is
    begin

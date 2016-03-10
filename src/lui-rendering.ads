@@ -1,19 +1,8 @@
 with WL.Bitmap_IO;
 
+with Lui.Colours;
+
 package Lui.Rendering is
-
-   type Colour_Byte is mod 256;
-
-   type Colour_Type is
-      record
-         Red, Green, Blue : Unit_Real;
-         Alpha            : Unit_Real;
-      end record;
-
-   function To_Colour (Red, Green, Blue : Colour_Byte) return Colour_Type;
-
-   Black : constant Colour_Type := (0.0, 0.0, 0.0, 1.0);
-   White : constant Colour_Type := (1.0, 1.0, 1.0, 1.0);
 
    type Buffer_Point_Type is
       record
@@ -37,7 +26,7 @@ package Lui.Rendering is
    procedure Draw_Circle (Renderer   : in out Root_Renderer;
                           X, Y       : in     Integer;
                           Radius     : in     Positive;
-                          Colour     : in     Colour_Type;
+                          Colour     : in     Lui.Colours.Colour_Type;
                           Filled     : in     Boolean;
                           Line_Width : in Natural := 1)
    is abstract;
@@ -46,7 +35,7 @@ package Lui.Rendering is
      (Renderer : in out Root_Renderer;
       X, Y     : in     Integer;
       W, H     : in     Natural;
-      Colour   : in     Colour_Type;
+      Colour   : in     Lui.Colours.Colour_Type;
       Filled   : in     Boolean)
    is abstract;
 
@@ -54,20 +43,20 @@ package Lui.Rendering is
      (Renderer : in out Root_Renderer;
       X1, Y1   : in     Integer;
       X2, Y2   : in     Integer;
-      Colour   : in     Colour_Type)
+      Colour   : in     Lui.Colours.Colour_Type)
    is abstract;
 
    procedure Draw_Polygon
      (Renderer : in out Root_Renderer;
       Vertices : Buffer_Points;
-      Colour   : Colour_Type;
+      Colour   : Lui.Colours.Colour_Type;
       Filled   : Boolean)
    is abstract;
 
    procedure Draw_String (Renderer : in out Root_Renderer;
                           X, Y     : in     Integer;
                           Size     : in     Positive;
-                          Colour   : in     Colour_Type;
+                          Colour   : in     Lui.Colours.Colour_Type;
                           Text     : in     String)
    is abstract;
 

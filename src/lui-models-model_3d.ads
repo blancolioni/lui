@@ -2,7 +2,8 @@ with Ada.Numerics.Long_Real_Arrays;
 
 private with Ada.Containers.Doubly_Linked_Lists;
 
-with Lui.Rendering;                    use Lui.Rendering;
+with Lui.Colours;                      use Lui.Colours;
+--  with Lui.Rendering;                    use Lui.Rendering;
 
 package Lui.Models.Model_3D is
 
@@ -29,7 +30,7 @@ package Lui.Models.Model_3D is
 
    overriding procedure Render
      (Model    : in out Root_3D_Model;
-      Renderer : in out Root_Renderer'Class);
+      Renderer : in out Lui.Rendering.Root_Renderer'Class);
 
    procedure Clear_Matrix
      (Model : in out Root_3D_Model'Class);
@@ -58,7 +59,7 @@ package Lui.Models.Model_3D is
 
    procedure Begin_Surface
      (Model  : in out Root_3D_Model'Class;
-      Colour : Colour_Type);
+      Colour : Lui.Colours.Colour_Type);
 
    procedure Vertex
      (Model : in out Root_3D_Model'Class;

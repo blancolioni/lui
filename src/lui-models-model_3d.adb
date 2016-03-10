@@ -7,7 +7,7 @@ package body Lui.Models.Model_3D is
    type Z_Buffered_Surface is
       record
          Z      : Real;
-         Pts    : Buffer_Points (1 .. 50);
+         Pts    : Lui.Rendering.Buffer_Points (1 .. 50);
          Count  : Natural;
          Colour : Colour_Type;
          Filled : Boolean;
@@ -21,12 +21,12 @@ package body Lui.Models.Model_3D is
    procedure Clear_Z_Buffer;
    procedure Add_To_Z_Buffer
      (Z      : Real;
-      Pts    : Buffer_Points;
+      Pts    : Lui.Rendering.Buffer_Points;
       Colour : Colour_Type;
       Filled : Boolean);
 
    procedure Draw_Z_Buffer
-     (Renderer : in out Root_Renderer'Class);
+     (Renderer : in out Lui.Rendering.Root_Renderer'Class);
 
    ---------------------
    -- Add_To_Z_Buffer --
@@ -34,7 +34,7 @@ package body Lui.Models.Model_3D is
 
    procedure Add_To_Z_Buffer
      (Z      : Real;
-      Pts    : Buffer_Points;
+      Pts    : Lui.Rendering.Buffer_Points;
       Colour : Colour_Type;
       Filled : Boolean)
    is
@@ -235,7 +235,7 @@ package body Lui.Models.Model_3D is
    -------------------
 
    procedure Draw_Z_Buffer
-     (Renderer : in out Root_Renderer'Class)
+     (Renderer : in out Lui.Rendering.Root_Renderer'Class)
    is
    begin
       for S of Z_Buffer loop
@@ -380,7 +380,7 @@ package body Lui.Models.Model_3D is
 
    overriding procedure Render
      (Model    : in out Root_3D_Model;
-      Renderer : in out Root_Renderer'Class)
+      Renderer : in out Lui.Rendering.Root_Renderer'Class)
    is
       View_Transform : Matrix_4 := Matrices.Unit_Matrix (4);
    begin
@@ -400,7 +400,7 @@ package body Lui.Models.Model_3D is
          declare
             use Matrices;
             Vs : array (1 .. Surface.Vs.Last_Index) of Vector_4;
-            Pts : Buffer_Points (Vs'Range);
+            Pts : Lui.Rendering.Buffer_Points (Vs'Range);
             Z_Coord : Real := 0.0;
          begin
 
