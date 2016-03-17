@@ -188,6 +188,7 @@ private
          Width, Height : Natural;
          Eye_X, Eye_Y  : Real := 0.0;
          Eye_Z         : Real := 1.0;
+         Rotated       : Boolean := False;
          X_Rotation    : Real := 0.0;
          Y_Rotation    : Real := 0.0;
          Z_Rotation    : Real := 0.0;

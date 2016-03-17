@@ -196,17 +196,24 @@ package body Lui.Models is
    is
       use Lui.Elementary_Functions;
       X_2D  : constant Real :=
-                X * Cos (Model.Y_Rotation, 360.0)
-                + Z * Sin (Model.Y_Rotation, 360.0);
+        (if Model.Rotated
+         then X * Cos (Model.Y_Rotation, 360.0)
+         + Z * Sin (Model.Y_Rotation, 360.0)
+         else X);
       Y_2D  : constant Real :=
-                Y * Cos (Model.X_Rotation, 360.0)
-                + Z * Sin (Model.X_Rotation, 360.0);
+        (if Model.Rotated
+         then Y * Cos (Model.X_Rotation, 360.0)
+         + Z * Sin (Model.X_Rotation, 360.0)
+         else Y);
       Scale : constant Real :=
                 Real (Natural'Min (Model.Width, Model.Height));
    begin
       Screen_X := Integer (Scale * X_2D / Model.Eye_Z) + Model.Width / 2;
       Screen_Y := Integer (Scale * Y_2D / Model.Eye_Z) + Model.Height / 2;
-      Screen_Z := Z * Cos (Model.X_Rotation, 360.0) * Cos (Model.Y_Rotation);
+      Screen_Z :=
+        (if Model.Rotated
+         then Z * Cos (Model.X_Rotation, 360.0) * Cos (Model.Y_Rotation)
+         else Z);
    end Get_Screen_Coordinates;
 
    ------------
