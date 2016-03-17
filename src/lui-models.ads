@@ -77,12 +77,12 @@ package Lui.Models is
    function Tooltip (Item : Root_Object_Model;
                      X, Y : Natural)
                      return String
-                     is abstract;
+                     is ("");
 
    function Long_Tooltip (Item : Root_Object_Model;
                           X, Y : Natural)
                           return String
-                          is abstract;
+                          is ("");
 
    function Select_XY (Item : Root_Object_Model;
                        X, Y : Natural)
