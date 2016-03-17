@@ -949,8 +949,10 @@ package body Lui.Gtk_UI is
    begin
       for I in 1 .. Table.Row_Count loop
          for J in 1 .. Table.Column_Count loop
-            Store.Set (Current_Row, Glib.Gint (J),
-                       Table.Cell_Text (I, J));
+            if Table.Cell_Changed (I, J) then
+               Store.Set (Current_Row, Glib.Gint (J),
+                          Table.Cell_Text (I, J));
+            end if;
          end loop;
 
          Store.Next (Current_Row);

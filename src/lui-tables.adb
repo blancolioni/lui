@@ -1,5 +1,23 @@
 package body Lui.Tables is
 
+   ------------------
+   -- Cell_Changed --
+   ------------------
+
+   function Cell_Changed
+     (Table    : in out Root_Model_Table;
+      Row, Col : Positive)
+      return Boolean
+   is
+   begin
+      for Change of Table.Changes loop
+         if Change.Row = Row and then Change.Column = Col then
+            return True;
+         end if;
+      end loop;
+      return False;
+   end Cell_Changed;
+
    -------------------
    -- Clear_Changed --
    -------------------
@@ -9,6 +27,7 @@ package body Lui.Tables is
    is
    begin
       Table.First := False;
+      Table.Changes.Clear;
    end Clear_Changed;
 
    ------------------
@@ -52,6 +71,7 @@ package body Lui.Tables is
 
                if Changed then
                   Table.Cache (Row, Col) := To_Unbounded_String (Text);
+                  Table.Changes.Append ((Row, Col));
                end if;
             end;
          end loop;

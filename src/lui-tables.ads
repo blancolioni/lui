@@ -1,4 +1,5 @@
 limited with Lui.Models;
+private with Ada.Containers.Doubly_Linked_Lists;
 private with Ada.Strings.Unbounded;
 
 package Lui.Tables is
@@ -43,6 +44,11 @@ package Lui.Tables is
      (Table : in out Root_Model_Table)
       return Boolean;
 
+   function Cell_Changed
+     (Table    : in out Root_Model_Table;
+      Row, Col : Positive)
+      return Boolean;
+
    function Layout_Changed
      (Table : Root_Model_Table)
       return Boolean;
@@ -63,6 +69,14 @@ private
      array (Positive range <>, Positive range <>) of
      Ada.Strings.Unbounded.Unbounded_String;
 
+   type Change_Record is
+      record
+         Row, Column : Positive;
+      end record;
+
+   package List_Of_Changes is
+     new Ada.Containers.Doubly_Linked_Lists (Change_Record);
+
    type Root_Model_Table is abstract new Root_UI_Element with
       record
          Name          : access String;
@@ -70,6 +84,7 @@ private
          Row_Count     : Natural;
          Col_Count     : Natural;
          Cache         : access Contents_Cache;
+         Changes       : List_Of_Changes.List;
       end record;
 
 end Lui.Tables;
