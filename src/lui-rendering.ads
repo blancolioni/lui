@@ -40,10 +40,11 @@ package Lui.Rendering is
    is abstract;
 
    procedure Draw_Line
-     (Renderer : in out Root_Renderer;
-      X1, Y1   : in     Integer;
-      X2, Y2   : in     Integer;
-      Colour   : in     Lui.Colours.Colour_Type)
+     (Renderer   : in out Root_Renderer;
+      X1, Y1     : in     Integer;
+      X2, Y2     : in     Integer;
+      Colour     : in     Lui.Colours.Colour_Type;
+      Line_Width : Natural := 1)
    is abstract;
 
    procedure Draw_Polygon
