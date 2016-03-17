@@ -1,4 +1,5 @@
 limited with Lui.Models;
+private with Ada.Strings.Unbounded;
 
 package Lui.Tables is
 
@@ -38,7 +39,11 @@ package Lui.Tables is
       return access Lui.Models.Root_Object_Model'Class
    is (null);
 
-   function Changed
+   function Contents_Changed
+     (Table : in out Root_Model_Table)
+      return Boolean;
+
+   function Layout_Changed
      (Table : Root_Model_Table)
       return Boolean;
 
@@ -54,12 +59,17 @@ package Lui.Tables is
 
 private
 
+   type Contents_Cache is
+     array (Positive range <>, Positive range <>) of
+     Ada.Strings.Unbounded.Unbounded_String;
+
    type Root_Model_Table is abstract new Root_UI_Element with
       record
-         Name        : access String;
-         First       : Boolean := True;
-         Row_Count   : Natural;
-         Col_Count   : Natural;
+         Name          : access String;
+         First         : Boolean := True;
+         Row_Count     : Natural;
+         Col_Count     : Natural;
+         Cache         : access Contents_Cache;
       end record;
 
 end Lui.Tables;
