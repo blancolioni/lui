@@ -6,10 +6,11 @@ with Ada.Strings.Unbounded.Hash;
 
 with Glib;
 with Glib.Main;
+with Glib.Object;
 
-with Gdk.Cairo;
 with Gdk.Event;
 with Gdk.Types.Keysyms;
+with Gdk.Window;
 
 with Gtk.Box;
 with Gtk.Button;
@@ -39,14 +40,26 @@ with Lui.Tables;
 
 package body Lui.Gtk_UI is
 
-   package Widget_Vectors is
+   type Model_Object_Record is
+     new Glib.Object.GObject_Record with
+      record
+         Model   : Lui.Models.Object_Model;
+         Widget  : Gtk.Drawing_Area.Gtk_Drawing_Area;
+         Surface : Cairo.Cairo_Surface := Cairo.Null_Surface;
+         Width   : Glib.Gint;
+         Height  : Glib.Gint;
+      end record;
+
+   type Model_Object_Access is access all Model_Object_Record'Class;
+
+   package Model_Object_Vectors is
      new Ada.Containers.Vectors
-       (Positive, Gtk.Widget.Gtk_Widget, Gtk.Widget."=");
+       (Positive, Model_Object_Access);
 
    type Gtk_Active_Model_List is
      new Lui.Models.Active_Model_List with
       record
-         Widgets  : Widget_Vectors.Vector;
+         Slots : Model_Object_Vectors.Vector;
       end record;
 
    overriding
@@ -129,6 +142,12 @@ package body Lui.Gtk_UI is
 
    Renderer : Cairo_Renderer;
 
+   procedure Render_Model
+     (Model   : Lui.Models.Object_Model;
+      Surface : Cairo.Cairo_Surface;
+      Width   : Glib.Gdouble;
+      Height  : Glib.Gdouble);
+
    package Image_Maps is
      new Ada.Containers.Hashed_Maps
        (Key_Type        => Ada.Strings.Unbounded.Unbounded_String,
@@ -182,13 +201,13 @@ package body Lui.Gtk_UI is
         Lui.Tables.Model_Table);
 
    function Configure_Model_Handler
-     (W : access Gtk.Drawing_Area.Gtk_Drawing_Area_Record'Class;
-      Model : Lui.Models.Object_Model)
+     (Self  : access Glib.Object.GObject_Record'Class;
+      Event : Gdk.Event.Gdk_Event_Configure)
       return Boolean;
 
    function Expose_Model_Handler
-     (W : access Gtk.Drawing_Area.Gtk_Drawing_Area_Record'Class;
-      Model : Lui.Models.Object_Model)
+     (Self : access Glib.Object.GObject_Record'Class;
+      Cr   : Cairo.Cairo_Context)
       return Boolean;
 
    function Model_Motion_Notify_Handler
@@ -299,16 +318,25 @@ package body Lui.Gtk_UI is
 
       Page.Set_Can_Focus (True);
 
-      Drawing_Area_Model_Callback.Connect
-        (Page, Gtk.Widget.Signal_Draw,
-         Drawing_Area_Model_Callback.To_Marshaller
-           (Expose_Model_Handler'Access),
-         Model);
-      Drawing_Area_Model_Callback.Connect
-        (Page, "configure-event",
-         Drawing_Area_Model_Callback.To_Marshaller
-           (Configure_Model_Handler'Access),
-         Model);
+      declare
+         Slot : constant Model_Object_Access :=
+                  new Model_Object_Record'
+                    (Glib.Object.GObject_Record with
+                     Model   => Model,
+                     Widget  => Page,
+                     Surface => Cairo.Null_Surface,
+                     Width   => 1,
+                     Height  => 1);
+      begin
+         Slot.Initialize;
+
+         Page.On_Draw
+           (Expose_Model_Handler'Access, Slot);
+         Page.On_Configure_Event
+           (Configure_Model_Handler'Access, Slot);
+         List.Slots.Append (Slot);
+      end;
+
       Drawing_Area_Model_Callback.Connect
         (Page, "motion-notify-event",
          Drawing_Area_Model_Callback.To_Marshaller
@@ -342,8 +370,6 @@ package body Lui.Gtk_UI is
       Gtk.Label.Gtk_New (Label, Model.Name);
       Label.Show;
 
-      List.Widgets.Append (Gtk.Widget.Gtk_Widget (Page));
-
       State.Main.Append_Feature (UI_Model, Model, Top => Page);
 
    end Append;
@@ -353,20 +379,25 @@ package body Lui.Gtk_UI is
    -----------------------------
 
    function Configure_Model_Handler
-     (W : access Gtk.Drawing_Area.Gtk_Drawing_Area_Record'Class;
-      Model : Lui.Models.Object_Model)
+     (Self  : access Glib.Object.GObject_Record'Class;
+      Event : Gdk.Event.Gdk_Event_Configure)
       return Boolean
    is
-      Context : constant Cairo.Cairo_Context :=
-                  Gdk.Cairo.Create (W.Get_Window);
-      Allocation : Gtk.Widget.Gtk_Allocation;
+      use type Cairo.Cairo_Surface;
+      Slot : Model_Object_Record renames
+               Model_Object_Record (Self.all);
    begin
-      W.Get_Allocation (Allocation);
-      Show_Model (Context,
-                  Glib.Gdouble (Allocation.Width),
-                  Glib.Gdouble (Allocation.Height),
-                  Model);
-      Cairo.Destroy (Context);
+      Slot.Width := Event.Width;
+      Slot.Height := Event.Height;
+      if Slot.Surface /= Cairo.Null_Surface then
+         Cairo.Surface_Destroy (Slot.Surface);
+      end if;
+      Slot.Surface :=
+        Gdk.Window.Create_Similar_Surface
+          (Slot.Widget.Get_Window,
+           Cairo.Cairo_Content_Color_Alpha,
+           Slot.Width, Slot.Height);
+
       return True;
    end Configure_Model_Handler;
 
@@ -643,20 +674,17 @@ package body Lui.Gtk_UI is
    --------------------------
 
    function Expose_Model_Handler
-     (W : access Gtk.Drawing_Area.Gtk_Drawing_Area_Record'Class;
-      Model : Lui.Models.Object_Model)
+     (Self : access Glib.Object.GObject_Record'Class;
+      Cr   : Cairo.Cairo_Context)
       return Boolean
    is
-      Context : constant Cairo.Cairo_Context :=
-                  Gdk.Cairo.Create (W.Get_Window);
-      Allocation : Gtk.Widget.Gtk_Allocation;
+      Slot : Model_Object_Record renames
+               Model_Object_Record (Self.all);
+
    begin
-      W.Get_Allocation (Allocation);
-      Show_Model (Context,
-                  Glib.Gdouble (Allocation.Width),
-                  Glib.Gdouble (Allocation.Height),
-                  Model);
-      Cairo.Destroy (Context);
+      Cairo.Set_Source_Surface
+        (Cr, Slot.Surface, 0.0, 0.0);
+      Cairo.Paint (Cr);
       return True;
    end Expose_Model_Handler;
 
@@ -974,10 +1002,30 @@ package body Lui.Gtk_UI is
    begin
       for Info of State.Tables loop
          if Info.Table = Table then
+            Info.View.Freeze_Child_Notify;
             Refresh_Table (Info.Table, Info.Store);
+            Info.View.Thaw_Child_Notify;
          end if;
       end loop;
    end Refresh_Table;
+
+   ------------------
+   -- Render_Model --
+   ------------------
+
+   procedure Render_Model
+     (Model   : Lui.Models.Object_Model;
+      Surface : Cairo.Cairo_Surface;
+      Width   : Glib.Gdouble;
+      Height  : Glib.Gdouble)
+   is
+      Context : constant Cairo.Cairo_Context :=
+                  Cairo.Create (Surface);
+
+   begin
+      Show_Model (Context, Width, Height, Model);
+      Cairo.Destroy (Context);
+   end Render_Model;
 
    ------------------
    -- Select_Model --
@@ -996,7 +1044,7 @@ package body Lui.Gtk_UI is
       for I in 1 .. State.Models.Count loop
          if State.Models.Model (I) = Model then
             State.Main.Select_Feature
-              (UI_Model, Model, State.Models.Widgets (I));
+              (UI_Model, Model, State.Models.Slots.Element (I).Widget);
             Found := True;
             exit;
          end if;
@@ -1269,10 +1317,16 @@ package body Lui.Gtk_UI is
       for I in 1 .. State.Models.Count loop
          declare
             Updated : Boolean := False;
+            Slot    : constant Model_Object_Access :=
+                        State.Models.Slots.Element (I);
          begin
-            State.Models.Model (I).Idle_Update (Updated);
+            Slot.Model.Idle_Update (Updated);
             if Updated then
-               State.Models.Widgets.Element (I).Queue_Draw;
+               Render_Model
+                 (Slot.Model, Slot.Surface,
+                  Glib.Gdouble (Slot.Width),
+                  Glib.Gdouble (Slot.Height));
+               Slot.Widget.Queue_Draw;
             end if;
          end;
       end loop;
