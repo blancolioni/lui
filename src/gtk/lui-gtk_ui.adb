@@ -1,9 +1,11 @@
+with Ada.Containers.Doubly_Linked_Lists;
 with Ada.Containers.Hashed_Maps;
 with Ada.Containers.Vectors;
 with Ada.Numerics;
 with Ada.Strings.Unbounded.Hash;
 
 with Glib;
+with Glib.Main;
 
 with Gdk.Cairo;
 with Gdk.Event;
@@ -134,15 +136,27 @@ package body Lui.Gtk_UI is
         Equivalent_Keys => Ada.Strings.Unbounded."=",
         "="             => Cairo."=");
 
+   type Model_Table_Info is
+      record
+         Table : Lui.Tables.Model_Table;
+         Store : Gtk.Tree_Store.Gtk_Tree_Store;
+         View  : Gtk.Tree_View.Gtk_Tree_View;
+      end record;
+
+   package Model_Table_Lists is
+     new Ada.Containers.Doubly_Linked_Lists (Model_Table_Info);
+
    type Root_UI_State is new Lui.Handles.Root_UI_Handle with
       record
          Main         : Lui_Gtk;
          Models       : Gtk_Active_Model_List;
+         Tables       : Model_Table_Lists.List;
          Image_Cache  : Image_Maps.Map;
          Dragging     : Boolean := False;
          Last_Drag_X  : Integer := Integer'First;
          Last_Drag_Y  : Integer := Integer'First;
          Active       : Lui.Models.Object_Model := null;
+         Timeout_Id : Glib.Main.G_Source_Id;
       end record;
 
    overriding procedure Show_Model
@@ -152,6 +166,8 @@ package body Lui.Gtk_UI is
    type UI_State is access all Root_UI_State'Class;
 
    State     : UI_State;
+
+   function Timeout_Handler return Boolean;
 
    package Drawing_Area_Model_Callback is
      new Gtk.Handlers.User_Return_Callback
@@ -233,6 +249,17 @@ package body Lui.Gtk_UI is
 
    procedure Show_Table
      (Table : Lui.Tables.Model_Table);
+
+   procedure Refresh_Table
+     (Table : Lui.Tables.Model_Table);
+
+   procedure Load_Table
+     (Table       : Lui.Tables.Model_Table;
+      Store       : Gtk.Tree_Store.Gtk_Tree_Store);
+
+   procedure Refresh_Table
+     (Table       : Lui.Tables.Model_Table;
+      Store       : Gtk.Tree_Store.Gtk_Tree_Store);
 
 --     procedure Show_Properties
 --       (Model   : Lui.Models.Object_Model);
@@ -686,6 +713,60 @@ package body Lui.Gtk_UI is
       end if;
    end Info_Select_Row_Callback;
 
+   ----------------
+   -- Load_Table --
+   ----------------
+
+   procedure Load_Table
+     (Table       : Lui.Tables.Model_Table;
+      Store       : Gtk.Tree_Store.Gtk_Tree_Store)
+   is
+      Max_Levels : constant := 16;
+      type Parent_Array is
+        array (1 .. Max_Levels) of Gtk.Tree_Model.Gtk_Tree_Iter;
+      Parent_Iters : Parent_Array :=
+                       (others => Gtk.Tree_Model.Null_Iter);
+      Parent_Rows  : array (1 .. Max_Levels) of Natural :=
+                       (others => 0);
+      Current_Level : Positive := 1;
+   begin
+
+      Store.Clear;
+
+      for I in 1 .. Table.Row_Count loop
+         declare
+            Result      : Gtk.Tree_Model.Gtk_Tree_Iter;
+            Parent_Iter : Gtk.Tree_Model.Gtk_Tree_Iter :=
+                            Gtk.Tree_Model.Null_Iter;
+            Parent_Row  : constant Natural :=
+                            Table.Parent_Row (I);
+         begin
+            Current_Level := 1;
+            if Parent_Row /= 0 then
+               for P_Index in Parent_Rows'Range loop
+                  if Parent_Rows (P_Index) = Parent_Row then
+                     Parent_Iter := Parent_Iters (P_Index);
+                     Current_Level := P_Index + 1;
+                     exit;
+                  end if;
+               end loop;
+            end if;
+
+            Parent_Rows (Current_Level) := I;
+            Store.Append (Result, Parent_Iter);
+            Parent_Iters (Current_Level) := Result;
+
+            Store.Set (Result, 0, Glib.Gint (I));
+            for J in 1 .. Table.Column_Count loop
+               Store.Set (Result, Glib.Gint (J),
+                          Table.Cell_Text (I, J));
+            end loop;
+         end;
+
+      end loop;
+
+   end Load_Table;
+
    -----------------------------
    -- Model_Key_Press_Handler --
    -----------------------------
@@ -855,6 +936,44 @@ package body Lui.Gtk_UI is
       Select_Model (Model);
    end On_Model_Changed;
 
+   -------------------
+   -- Refresh_Table --
+   -------------------
+
+   procedure Refresh_Table
+     (Table       : Lui.Tables.Model_Table;
+      Store       : Gtk.Tree_Store.Gtk_Tree_Store)
+   is
+      Current_Row  : Gtk.Tree_Model.Gtk_Tree_Iter :=
+                          Store.Get_Iter_First;
+   begin
+      for I in 1 .. Table.Row_Count loop
+         for J in 1 .. Table.Column_Count loop
+            Store.Set (Current_Row, Glib.Gint (J),
+                       Table.Cell_Text (I, J));
+         end loop;
+
+         Store.Next (Current_Row);
+      end loop;
+
+   end Refresh_Table;
+
+   -------------------
+   -- Refresh_Table --
+   -------------------
+
+   procedure Refresh_Table
+     (Table : Lui.Tables.Model_Table)
+   is
+      use type Lui.Tables.Model_Table;
+   begin
+      for Info of State.Tables loop
+         if Info.Table = Table then
+            Refresh_Table (Info.Table, Info.Store);
+         end if;
+      end loop;
+   end Refresh_Table;
+
    ------------------
    -- Select_Model --
    ------------------
@@ -997,19 +1116,22 @@ package body Lui.Gtk_UI is
       end if;
 
       declare
-         Refresh_Tables : Boolean := False;
-         Tables         : constant Lui.Tables.Array_Of_Model_Tables :=
+         Reload_Tables : Boolean := False;
+         Tables        : constant Lui.Tables.Array_Of_Model_Tables :=
                             Model.Tables;
       begin
          for I in 1 .. Tables'Length loop
-            if Tables (I).Changed then
-               Refresh_Tables := True;
-               Tables (I).Clear_Changed;
+            if Tables (I).Layout_Changed then
+               Reload_Tables := True;
+            elsif Tables (I).Contents_Changed then
+               Refresh_Table (Tables (I));
             end if;
+            Tables (I).Clear_Changed;
          end loop;
 
-         if Refresh_Tables then
+         if Reload_Tables then
             State.Main.Clear_Features (UI_Table);
+            State.Tables.Clear;
             for Table of Model.Tables loop
                Show_Table (Table);
             end loop;
@@ -1042,13 +1164,6 @@ package body Lui.Gtk_UI is
       Store : Gtk.Tree_Store.Gtk_Tree_Store;
       Types : Glib.GType_Array (0 .. Glib.Guint (Table.Column_Count));
       Label : Gtk.Label.Gtk_Label;
-      Max_Levels : constant := 16;
-      Parent_Iters : array (1 .. Max_Levels)
-        of Gtk.Tree_Model.Gtk_Tree_Iter :=
-          (others => Gtk.Tree_Model.Null_Iter);
-      Parent_Rows                     : array (1 .. Max_Levels) of Natural :=
-                                          (others => 0);
-      Current_Level                   : Positive := 1;
       Info_Box                        : Gtk.Box.Gtk_Box;
    begin
 
@@ -1070,38 +1185,10 @@ package body Lui.Gtk_UI is
 
       Gtk.Tree_Store.Gtk_New (Store, Types);
 
-      for I in 1 .. Table.Row_Count loop
-         declare
-            Result      : Gtk.Tree_Model.Gtk_Tree_Iter;
-            Parent_Iter : Gtk.Tree_Model.Gtk_Tree_Iter :=
-                            Gtk.Tree_Model.Null_Iter;
-            Parent_Row  : constant Natural :=
-                            Table.Parent_Row (I);
-         begin
-            Current_Level := 1;
-            if Parent_Row /= 0 then
-               for P_Index in Parent_Rows'Range loop
-                  if Parent_Rows (P_Index) = Parent_Row then
-                     Parent_Iter := Parent_Iters (P_Index);
-                     Current_Level := P_Index + 1;
-                     exit;
-                  end if;
-               end loop;
-            end if;
-
-            Parent_Rows (Current_Level) := I;
-            Store.Append (Result, Parent_Iter);
-            Parent_Iters (Current_Level) := Result;
-
-            Store.Set (Result, 0, Glib.Gint (I));
-            for J in 1 .. Table.Column_Count loop
-               Store.Set (Result, Glib.Gint (J),
-                          Table.Cell_Text (I, J));
-            end loop;
-         end;
-      end loop;
+      Load_Table (Table, Store);
 
       Gtk.Tree_View.Gtk_New (Tree, Store);
+      State.Tables.Append ((Table, Store, Tree));
 
       for I in 1 .. Table.Column_Count loop
          declare
@@ -1138,6 +1225,7 @@ package body Lui.Gtk_UI is
                               Expand   => True,
                               Fill     => True,
                               Padding  => 0);
+         Info_Box.Show_All;
       end;
 
       State.Main.Append_Feature
@@ -1155,8 +1243,31 @@ package body Lui.Gtk_UI is
    is
    begin
       State      := new Root_UI_State;
+      State.Timeout_Id :=
+        Glib.Main.Timeout_Add
+          (Interval => 100,
+           Func     => Timeout_Handler'Access);
       State.Main := Main;
       State.Models.Append (Top);
    end Start;
+
+   ---------------------
+   -- Timeout_Handler --
+   ---------------------
+
+   function Timeout_Handler return Boolean is
+   begin
+      for I in 1 .. State.Models.Count loop
+         declare
+            Updated : Boolean := False;
+         begin
+            State.Models.Model (I).Idle_Update (Updated);
+            if Updated then
+               State.Models.Widgets.Element (I).Queue_Draw;
+            end if;
+         end;
+      end loop;
+      return True;
+   end Timeout_Handler;
 
 end Lui.Gtk_UI;
