@@ -30,6 +30,10 @@ package Lui.Gtk_UI is
       Message : String)
    is abstract;
 
+   procedure On_Idle
+     (Item : in out Lui_Gtk_Interface)
+   is null;
+
    type Lui_Gtk is access all Lui_Gtk_Interface'Class;
 
    procedure Start

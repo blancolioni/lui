@@ -77,10 +77,11 @@ package body Lui.Gtk_UI is
 
    overriding
    procedure Draw_Line
-     (Renderer : in out Cairo_Renderer;
-      X1, Y1   : in     Integer;
-      X2, Y2   : in     Integer;
-      Colour   : in     Lui.Colours.Colour_Type);
+     (Renderer   : in out Cairo_Renderer;
+      X1, Y1     : in     Integer;
+      X2, Y2     : in     Integer;
+      Colour     : in     Lui.Colours.Colour_Type;
+      Line_Width : Natural := 1);
 
    overriding
    procedure Draw_Polygon
@@ -522,14 +523,16 @@ package body Lui.Gtk_UI is
 
    overriding
    procedure Draw_Line
-     (Renderer : in out Cairo_Renderer;
-      X1, Y1   : in     Integer;
-      X2, Y2   : in     Integer;
-      Colour   : in     Lui.Colours.Colour_Type)
+     (Renderer   : in out Cairo_Renderer;
+      X1, Y1     : in     Integer;
+      X2, Y2     : in     Integer;
+      Colour     : in     Lui.Colours.Colour_Type;
+      Line_Width : Natural := 1)
    is
       use Glib;
    begin
       Set_Colour (Renderer, Colour);
+      Cairo.Set_Line_Width (Renderer.Context, Gdouble (Line_Width));
       Cairo.Move_To (Renderer.Context,
                      Gdouble (X1 + Renderer.Origin_X),
                      Gdouble (Y1 + Renderer.Origin_Y));
@@ -1245,10 +1248,13 @@ package body Lui.Gtk_UI is
    is
    begin
       State      := new Root_UI_State;
+--        State.Timeout_Id :=
+--          Glib.Main.Timeout_Add
+--            (Interval => 100,
+--             Func     => Timeout_Handler'Access);
       State.Timeout_Id :=
-        Glib.Main.Timeout_Add
-          (Interval => 100,
-           Func     => Timeout_Handler'Access);
+        Glib.Main.Idle_Add
+          (Func     => Timeout_Handler'Access);
       State.Main := Main;
       State.Models.Append (Top);
    end Start;
@@ -1259,6 +1265,7 @@ package body Lui.Gtk_UI is
 
    function Timeout_Handler return Boolean is
    begin
+      State.Main.On_Idle;
       for I in 1 .. State.Models.Count loop
          declare
             Updated : Boolean := False;
