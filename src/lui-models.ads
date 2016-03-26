@@ -33,12 +33,16 @@ package Lui.Models is
      (Item : in out Root_Object_Model;
       X, Y, Z : Real);
 
-   procedure Move (Item  : in out Root_Object_Model;
-                   X, Y  : Integer);
+   procedure Move (Item    : in out Root_Object_Model;
+                   DX, DY  : Integer);
 
    procedure Get_Location
      (Item : Root_Object_Model;
       X, Y : out Integer);
+
+   procedure Set_Location
+     (Item : in out Root_Object_Model;
+      X, Y : Integer);
 
    procedure Get_Screen_Coordinates
      (Model              : Root_Object_Model;
@@ -92,6 +96,13 @@ package Lui.Models is
    procedure Select_XY (Item : in out Root_Object_Model;
                         X, Y : Natural)
    is null;
+
+   type Drag_Behaviour is (Rotation, Translation);
+
+   function Get_Drag_Behaviour
+     (Model : Root_Object_Model)
+      return Drag_Behaviour
+   is (Rotation);
 
    function Gadgets
      (Model : Root_Object_Model)

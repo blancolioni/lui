@@ -275,12 +275,12 @@ package body Lui.Models is
    -- Move --
    ----------
 
-   procedure Move (Item  : in out Root_Object_Model;
-                   X, Y  : Integer)
+   procedure Move (Item    : in out Root_Object_Model;
+                   DX, DY  : Integer)
    is
    begin
-      Item.X := X;
-      Item.Y := Y;
+      Item.X := Item.X + DX;
+      Item.Y := Item.Y + DY;
    end Move;
 
    ----------
@@ -409,6 +409,19 @@ package body Lui.Models is
       Item.Eye_Z := Z;
    end Set_Eye_Position;
 
+   ------------------
+   -- Set_Location --
+   ------------------
+
+   procedure Set_Location
+     (Item : in out Root_Object_Model;
+      X, Y : Integer)
+   is
+   begin
+      Item.X := X;
+      Item.Y := Y;
+   end Set_Location;
+
    --------------
    -- Set_Name --
    --------------
@@ -482,9 +495,9 @@ package body Lui.Models is
       pragma Unreferenced (Control);
    begin
       if Z < 0 then
-         Item.Eye_Z := Item.Eye_Z * 0.8;
+         Item.Eye_Z := Item.Eye_Z * 0.9;
       else
-         Item.Eye_Z := Item.Eye_Z / 0.8;
+         Item.Eye_Z := Item.Eye_Z / 0.9;
       end if;
    end Zoom;
 

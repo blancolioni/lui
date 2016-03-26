@@ -90,8 +90,8 @@ package body Lui.Models.Boxes is
             if Child_Width > Model.Child_Border_Width * 2
               and then Child_Height > Model.Child_Border_Width * 2
             then
-               Item.Move (Child_X + Model.Child_Border_Width,
-                          Child_Y + Model.Child_Border_Width);
+               Item.Set_Location (Child_X + Model.Child_Border_Width,
+                                  Child_Y + Model.Child_Border_Width);
                Item.Resize (Child_Width - Model.Child_Border_Width * 2,
                             Child_Height - Model.Child_Border_Width * 2);
             end if;
