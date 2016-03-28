@@ -1284,7 +1284,7 @@ package body Lui.Gtk_UI is
       end loop;
 
       Select_Item_Handler.Connect
-        (Tree, "row-activated",
+        (Tree, Gtk.Tree_View.Signal_Row_Activated,
          Info_Select_Row_Callback'Access,
          Table);
 
