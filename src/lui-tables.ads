@@ -50,7 +50,7 @@ package Lui.Tables is
       return Boolean;
 
    function Layout_Changed
-     (Table : Root_Model_Table)
+     (Table : in out Root_Model_Table)
       return Boolean;
 
    procedure Clear_Changed
@@ -79,12 +79,12 @@ private
 
    type Root_Model_Table is abstract new Root_UI_Element with
       record
-         Name          : access String;
-         First         : Boolean := True;
-         Row_Count     : Natural;
-         Col_Count     : Natural;
-         Cache         : access Contents_Cache;
-         Changes       : List_Of_Changes.List;
+         Name            : access String;
+         First           : Boolean := True;
+         Table_Row_Count : Natural;
+         Table_Col_Count : Natural;
+         Cache           : access Contents_Cache;
+         Changes         : List_Of_Changes.List;
       end record;
 
 end Lui.Tables;

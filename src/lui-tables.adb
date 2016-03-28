@@ -1,3 +1,5 @@
+with Ada.Text_IO;
+
 package body Lui.Tables is
 
    ------------------
@@ -36,7 +38,7 @@ package body Lui.Tables is
 
    function Column_Count (Table : Root_Model_Table) return Natural is
    begin
-      return Table.Col_Count;
+      return Table.Table_Col_Count;
    end Column_Count;
 
    ----------------------
@@ -49,6 +51,10 @@ package body Lui.Tables is
    is
       use Ada.Strings.Unbounded;
       Changed : Boolean := False;
+      Rows    : constant Natural :=
+                  Root_Model_Table'Class (Table).Row_Count;
+      Cols    : constant Natural :=
+                  Root_Model_Table'Class (Table).Column_Count;
    begin
       if Root_Model_Table'Class (Table).Layout_Changed then
          return True;
@@ -56,11 +62,11 @@ package body Lui.Tables is
 
       if Table.Cache = null then
          Table.Cache :=
-           new Contents_Cache (1 .. Table.Row_Count, 1 .. Table.Col_Count);
+           new Contents_Cache (1 .. Rows, 1 .. Cols);
       end if;
 
-      for Row in 1 .. Table.Row_Count loop
-         for Col in 1 .. Table.Col_Count loop
+      for Row in 1 .. Rows loop
+         for Col in 1 .. Cols loop
             declare
                Text : constant String :=
                         Root_Model_Table'Class (Table).Cell_Text (Row, Col);
@@ -91,8 +97,8 @@ package body Lui.Tables is
    is
    begin
       Item.Name := new String'(Name);
-      Item.Row_Count := Num_Rows;
-      Item.Col_Count := Num_Cols;
+      Item.Table_Row_Count := Num_Rows;
+      Item.Table_Col_Count := Num_Cols;
    end Initialise;
 
    --------------------
@@ -100,11 +106,51 @@ package body Lui.Tables is
    --------------------
 
    function Layout_Changed
-     (Table : Root_Model_Table)
+     (Table : in out Root_Model_Table)
       return Boolean
    is
+      procedure Report_Reason (Reason : String);
+
+      -------------------
+      -- Report_Reason --
+      -------------------
+
+      procedure Report_Reason (Reason : String) is
+      begin
+         Ada.Text_IO.Put_Line
+           (Table.Name.all
+            & ": layout-change: " & Reason);
+      end Report_Reason;
+
    begin
-      return Table.First;
+      if Table.First then
+         Report_Reason ("first render");
+         return True;
+      elsif Table.Cache = null then
+         return False;
+      else
+         declare
+            Cache_Rows : constant Natural := Table.Cache'Length (1);
+            Cache_Cols : constant Natural := Table.Cache'Length (2);
+            New_Rows   : constant Natural :=
+                           Root_Model_Table'Class (Table).Row_Count;
+            New_Cols   : constant Natural :=
+                           Root_Model_Table'Class (Table).Column_Count;
+         begin
+            if Cache_Rows /= New_Rows then
+               Report_Reason ("rows changed");
+               Table.Cache := null;
+               return True;
+            elsif Cache_Cols /= New_Cols then
+               Report_Reason ("cols changed");
+               Table.Cache := null;
+               return True;
+            else
+               return False;
+            end if;
+         end;
+      end if;
+
    end Layout_Changed;
 
    ----------
@@ -133,7 +179,7 @@ package body Lui.Tables is
 
    function Row_Count (Table : Root_Model_Table) return Natural is
    begin
-      return Table.Row_Count;
+      return Table.Table_Row_Count;
    end Row_Count;
 
 end Lui.Tables;
