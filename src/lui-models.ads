@@ -104,13 +104,13 @@ package Lui.Models is
       end record;
 
    procedure Add_Inline_Model
-     (To_Model : in out Root_Object_Model'Class;
+     (To_Model : not null access Root_Object_Model'Class;
       Anchor   : Model_Anchor;
       W, H     : Positive;
       Model    : not null access Root_Object_Model'Class);
 
    procedure Add_Inline_Model
-     (To_Model      : in out Root_Object_Model'Class;
+     (To_Model      : not null access Root_Object_Model'Class;
       Width         : Positive;
       Height        : Positive;
       Model         : not null access Root_Object_Model'Class;
@@ -122,6 +122,15 @@ package Lui.Models is
    procedure Remove_Inline_Model
      (From_Model : in out Root_Object_Model'Class;
       Model      : not null access Root_Object_Model'Class);
+
+   function Parent_Model
+     (Model : Root_Object_Model'Class)
+      return Object_Model;
+
+   procedure On_Model_Removed
+     (Model : Root_Object_Model;
+      Child : not null access Root_Object_Model'Class)
+   is null;
 
    type Drag_Behaviour is (Rotation, Translation);
 
@@ -247,6 +256,7 @@ private
    type Root_Object_Model is abstract new Root_UI_Element with
       record
          Name          : Ada.Strings.Unbounded.Unbounded_String;
+         Parent        : Object_Model;
          First         : Boolean := True;
          Properties    : Property_Vectors.Vector;
          X, Y          : Integer := 0;

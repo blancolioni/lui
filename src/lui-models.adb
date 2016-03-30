@@ -9,7 +9,7 @@ package body Lui.Models is
    ----------------------
 
    procedure Add_Inline_Model
-     (To_Model      : in out Root_Object_Model'Class;
+     (To_Model      : not null access Root_Object_Model'Class;
       Width         : Positive;
       Height        : Positive;
       Model         : not null access Root_Object_Model'Class;
@@ -32,7 +32,7 @@ package body Lui.Models is
    ----------------------
 
    procedure Add_Inline_Model
-     (To_Model : in out Root_Object_Model'Class;
+     (To_Model : not null access Root_Object_Model'Class;
       Anchor   : Model_Anchor;
       W, H     : Positive;
       Model    : not null access Root_Object_Model'Class)
@@ -392,6 +392,18 @@ package body Lui.Models is
       return Ada.Strings.Unbounded.To_String (Item.Name);
    end Name;
 
+   ------------------
+   -- Parent_Model --
+   ------------------
+
+   function Parent_Model
+     (Model : Root_Object_Model'Class)
+      return Object_Model
+   is
+   begin
+      return Model.Parent;
+   end Parent_Model;
+
    ------------------------
    -- Properties_Changed --
    ------------------------
@@ -483,7 +495,11 @@ package body Lui.Models is
            & To_String (From_Model.Name) & "'";
       end if;
 
+      Model.Parent := null;
+
       From_Model.Queue_Render;
+
+      From_Model.On_Model_Removed (Model);
 
    end Remove_Inline_Model;
 
