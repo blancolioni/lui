@@ -321,12 +321,21 @@ package body Lui.Models is
    -----------------
 
    procedure Idle_Update
-     (Model   : in out Root_Object_Model;
+     (Model   : in out Root_Object_Model'Class;
       Updated : out Boolean)
    is
-      pragma Unreferenced (Model);
    begin
-      Updated := False;
+      Updated := Model.Handle_Update;
+
+      for Inline_Model of Model.Inline_Models loop
+         declare
+            Model_Updated : constant Boolean :=
+                              Inline_Model.Model.Handle_Update;
+         begin
+            Updated := Updated or else Model_Updated;
+         end;
+      end loop;
+
    end Idle_Update;
 
    ----------------

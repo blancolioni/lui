@@ -141,8 +141,14 @@ package Lui.Models is
    procedure Clear_Changed
      (Model : in out Root_Object_Model);
 
+   function Handle_Update
+     (Model : in out Root_Object_Model)
+      return Boolean
+   is (False);
+   --  Return True if model was changed by this update
+
    procedure Idle_Update
-     (Model   : in out Root_Object_Model;
+     (Model   : in out Root_Object_Model'Class;
       Updated : out Boolean);
 
    function Property_Count (Item : Root_Object_Model) return Natural;
