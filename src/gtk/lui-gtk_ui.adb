@@ -398,6 +398,10 @@ package body Lui.Gtk_UI is
            Cairo.Cairo_Content_Color_Alpha,
            Slot.Width, Slot.Height);
 
+      Render_Model (Slot.Model, Slot.Surface,
+                    Glib.Gdouble (Slot.Width),
+                    Glib.Gdouble (Slot.Height));
+
       return True;
    end Configure_Model_Handler;
 
