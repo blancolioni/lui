@@ -4,6 +4,47 @@ with Lui.Elementary_Functions;
 
 package body Lui.Models is
 
+   ----------------------
+   -- Add_Inline_Model --
+   ----------------------
+
+   procedure Add_Inline_Model
+     (To_Model      : in out Root_Object_Model'Class;
+      Width         : Positive;
+      Height        : Positive;
+      Model         : not null access Root_Object_Model'Class;
+      Attach_Left   : Boolean := False;
+      Attach_Right  : Boolean := False;
+      Attach_Top    : Boolean := False;
+      Attach_Bottom : Boolean := False)
+   is
+   begin
+      To_Model.Add_Inline_Model
+        (Anchor => (Left => Attach_Left, Right => Attach_Right,
+                    Top => Attach_Top, Bottom => Attach_Bottom),
+         W      => Width,
+         H      => Height,
+         Model  => Model);
+   end Add_Inline_Model;
+
+   ----------------------
+   -- Add_Inline_Model --
+   ----------------------
+
+   procedure Add_Inline_Model
+     (To_Model : in out Root_Object_Model'Class;
+      Anchor   : Model_Anchor;
+      W, H     : Positive;
+      Model    : not null access Root_Object_Model'Class)
+   is
+   begin
+      To_Model.Inline_Models.Append
+        ((Anchor, W, H, Model));
+      Model.Width := W;
+      Model.Height := H;
+      Model.Queue_Render;
+   end Add_Inline_Model;
+
    ------------------
    -- Add_Property --
    ------------------
@@ -52,8 +93,42 @@ package body Lui.Models is
      (Item     : in out Root_Object_Model;
       Renderer : in out Lui.Rendering.Root_Renderer'Class)
    is
+      function Get_Start
+        (Parent_Length, Child_Length : Positive;
+         Anchor_Start, Anchor_End    : Boolean)
+         return Integer
+      is (if not (Anchor_Start xor Anchor_End)
+          then Parent_Length / 2 - Child_Length / 2
+          elsif Anchor_End
+          then Parent_Length - Child_Length
+          else 0);
+
    begin
-      null;
+      for Inline_Model of Item.Inline_Models loop
+         declare
+            Child   : constant access Root_Object_Model'Class :=
+                        Inline_Model.Model;
+            Anchor  : constant Model_Anchor := Inline_Model.Anchor;
+            Child_X : constant Integer :=
+                        Get_Start (Item.Width, Child.Width,
+                                   Anchor.Left, Anchor.Right);
+            Child_Y : constant Integer :=
+                        Get_Start (Item.Height, Child.Height,
+                                   Anchor.Top, Anchor.Bottom);
+         begin
+            Child.Set_Location
+              (Item.X + Child_X, Item.Y + Child_Y);
+            Renderer.Draw_Rectangle
+              (Child_X, Child_Y, Child.Width, Child.Height,
+               Child.Background, True);
+            Renderer.Draw_Rectangle
+              (Child_X, Child_Y, Child.Width, Child.Height,
+               Child.Border, False);
+            Child.Before_Render (Renderer);
+            Child.Render (Renderer);
+            Child.After_Render (Renderer);
+         end;
+      end loop;
    end After_Render;
 
    ------------
@@ -89,8 +164,21 @@ package body Lui.Models is
       Renderer : in out Lui.Rendering.Root_Renderer'Class)
    is
    begin
+      Item.Queued_Render := False;
       Renderer.Set_Origin (Item.X, Item.Y);
    end Before_Render;
+
+   ------------
+   -- Border --
+   ------------
+
+   function Border
+     (Item : Root_Object_Model)
+      return Lui.Colours.Colour_Type
+   is
+   begin
+      return Item.Border;
+   end Border;
 
    -------------------
    -- Clear_Changed --
@@ -337,6 +425,56 @@ package body Lui.Models is
       return Item.Properties (Index).Value.all;
    end Property_Value;
 
+   ------------------
+   -- Queue_Render --
+   ------------------
+
+   procedure Queue_Render (Model : in out Root_Object_Model) is
+   begin
+      Model.Queued_Render := True;
+   end Queue_Render;
+
+   -------------------
+   -- Queued_Render --
+   -------------------
+
+   function Queued_Render (Model : Root_Object_Model) return Boolean is
+   begin
+      return Model.Queued_Render;
+   end Queued_Render;
+
+   -------------------------
+   -- Remove_Inline_Model --
+   -------------------------
+
+   procedure Remove_Inline_Model
+     (From_Model : in out Root_Object_Model'Class;
+      Model      : not null access Root_Object_Model'Class)
+   is
+      use Inline_Model_Lists;
+      use Ada.Strings.Unbounded;
+      Found_Position : Cursor := No_Element;
+   begin
+      for Position in From_Model.Inline_Models.Iterate loop
+         if Element (Position).Model = Model then
+            Found_Position := Position;
+            exit;
+         end if;
+      end loop;
+
+      if Has_Element (Found_Position) then
+         From_Model.Inline_Models.Delete (Found_Position);
+      else
+         raise Constraint_Error with
+           "could not find model named '"
+           & To_String (Model.Name) & "' in model '"
+           & To_String (From_Model.Name) & "'";
+      end if;
+
+      Model.Queue_Render;
+
+   end Remove_Inline_Model;
+
    ------------
    -- Resize --
    ------------
@@ -394,6 +532,18 @@ package body Lui.Models is
    begin
       Item.Background := Colour;
    end Set_Background;
+
+   ----------------
+   -- Set_Border --
+   ----------------
+
+   procedure Set_Border
+     (Item : in out Root_Object_Model'Class;
+      Colour : Lui.Colours.Colour_Type)
+   is
+   begin
+      Item.Border := Colour;
+   end Set_Border;
 
    ----------------------
    -- Set_Eye_Position --

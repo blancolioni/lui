@@ -1346,7 +1346,7 @@ package body Lui.Gtk_UI is
                         State.Models.Slots.Element (I);
          begin
             Slot.Model.Idle_Update (Updated);
-            if Updated then
+            if Slot.Model.Queued_Render or else Updated then
                Render_Model
                  (Slot.Model, Slot.Surface,
                   Glib.Gdouble (Slot.Width),

@@ -1,3 +1,4 @@
+private with Ada.Containers.Doubly_Linked_Lists;
 private with Ada.Containers.Vectors;
 private with Ada.Strings.Unbounded;
 
@@ -97,6 +98,31 @@ package Lui.Models is
                         X, Y : Natural)
    is null;
 
+   type Model_Anchor is
+      record
+         Left, Top, Right, Bottom : Boolean := False;
+      end record;
+
+   procedure Add_Inline_Model
+     (To_Model : in out Root_Object_Model'Class;
+      Anchor   : Model_Anchor;
+      W, H     : Positive;
+      Model    : not null access Root_Object_Model'Class);
+
+   procedure Add_Inline_Model
+     (To_Model      : in out Root_Object_Model'Class;
+      Width         : Positive;
+      Height        : Positive;
+      Model         : not null access Root_Object_Model'Class;
+      Attach_Left   : Boolean := False;
+      Attach_Right  : Boolean := False;
+      Attach_Top    : Boolean := False;
+      Attach_Bottom : Boolean := False);
+
+   procedure Remove_Inline_Model
+     (From_Model : in out Root_Object_Model'Class;
+      Model      : not null access Root_Object_Model'Class);
+
    type Drag_Behaviour is (Rotation, Translation);
 
    function Get_Drag_Behaviour
@@ -144,8 +170,17 @@ package Lui.Models is
      (Item : in out Root_Object_Model'Class;
       Colour : Lui.Colours.Colour_Type);
 
-   function Background (Item : Root_Object_Model)
-                        return Lui.Colours.Colour_Type;
+   function Background
+     (Item : Root_Object_Model)
+      return Lui.Colours.Colour_Type;
+
+   procedure Set_Border
+     (Item : in out Root_Object_Model'Class;
+      Colour : Lui.Colours.Colour_Type);
+
+   function Border
+     (Item : Root_Object_Model)
+      return Lui.Colours.Colour_Type;
 
    function Width (Item : Root_Object_Model) return Natural;
    function Height (Item : Root_Object_Model) return Natural;
@@ -162,6 +197,9 @@ package Lui.Models is
      (Model    : in out Root_Object_Model;
       Renderer : in out Lui.Rendering.Root_Renderer'Class)
    is abstract;
+
+   procedure Queue_Render (Model : in out Root_Object_Model);
+   function Queued_Render (Model : Root_Object_Model) return Boolean;
 
    function Tables (Item : Root_Object_Model'Class)
                     return Lui.Tables.Array_Of_Model_Tables;
@@ -190,6 +228,16 @@ private
      new Ada.Containers.Vectors
        (Positive, Property_Entry);
 
+   type Inline_Model_Entry is
+      record
+         Anchor : Model_Anchor;
+         W, H   : Positive;
+         Model  : access Root_Object_Model'Class;
+      end record;
+
+   package Inline_Model_Lists is
+     new Ada.Containers.Doubly_Linked_Lists (Inline_Model_Entry);
+
    type Root_Object_Model is abstract new Root_UI_Element with
       record
          Name          : Ada.Strings.Unbounded.Unbounded_String;
@@ -204,8 +252,11 @@ private
          Y_Rotation    : Real := 0.0;
          Z_Rotation    : Real := 0.0;
          Background    : Lui.Colours.Colour_Type := Lui.Colours.Black;
+         Border        : Lui.Colours.Colour_Type := Lui.Colours.Black;
+         Inline_Models : Inline_Model_Lists.List;
          Tables        : access Lui.Tables.Array_Of_Model_Tables;
          Gadgets       : access Lui.Gadgets.Array_Of_Gadgets;
+         Queued_Render : Boolean := True;
       end record;
 
    package Object_Model_Vectors is
