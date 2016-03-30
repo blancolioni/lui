@@ -42,7 +42,7 @@ package body Lui.Models is
         ((Anchor, W, H, Model));
       Model.Width := W;
       Model.Height := H;
-      Model.Queue_Render;
+      To_Model.Queue_Render;
    end Add_Inline_Model;
 
    ------------------
@@ -115,6 +115,8 @@ package body Lui.Models is
             Child_Y : constant Integer :=
                         Get_Start (Item.Height, Child.Height,
                                    Anchor.Top, Anchor.Bottom);
+            Origin  : constant Lui.Rendering.Buffer_Point_Type :=
+                        Renderer.Get_Origin;
          begin
             Child.Set_Location
               (Item.X + Child_X, Item.Y + Child_Y);
@@ -127,6 +129,7 @@ package body Lui.Models is
             Child.Before_Render (Renderer);
             Child.Render (Renderer);
             Child.After_Render (Renderer);
+            Renderer.Set_Origin (Origin.X, Origin.Y);
          end;
       end loop;
    end After_Render;
@@ -471,7 +474,7 @@ package body Lui.Models is
            & To_String (From_Model.Name) & "'";
       end if;
 
-      Model.Queue_Render;
+      From_Model.Queue_Render;
 
    end Remove_Inline_Model;
 
