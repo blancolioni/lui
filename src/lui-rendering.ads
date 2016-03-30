@@ -23,6 +23,11 @@ package Lui.Rendering is
       X, Y     : in     Integer)
    is abstract;
 
+   function Get_Origin
+     (Renderer : Root_Renderer)
+      return Buffer_Point_Type
+      is abstract;
+
    procedure Draw_Circle (Renderer   : in out Root_Renderer;
                           X, Y       : in     Integer;
                           Radius     : in     Positive;

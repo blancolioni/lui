@@ -79,6 +79,11 @@ package body Lui.Gtk_UI is
      (Renderer : in out Cairo_Renderer;
       X, Y     : in     Integer);
 
+   overriding function Get_Origin
+     (Renderer : Cairo_Renderer)
+      return Lui.Rendering.Buffer_Point_Type
+   is ((Renderer.Origin_X, Renderer.Origin_Y));
+
    overriding
    procedure Draw_Circle
      (Renderer   : in out Cairo_Renderer;
