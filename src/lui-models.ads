@@ -123,12 +123,15 @@ package Lui.Models is
      (From_Model : in out Root_Object_Model'Class;
       Model      : not null access Root_Object_Model'Class);
 
+   procedure Remove_All_Inline_Models
+     (From_Model : in out Root_Object_Model'Class);
+
    function Parent_Model
      (Model : Root_Object_Model'Class)
       return Object_Model;
 
    procedure On_Model_Removed
-     (Model : Root_Object_Model;
+     (Model : in out Root_Object_Model;
       Child : not null access Root_Object_Model'Class)
    is null;
 

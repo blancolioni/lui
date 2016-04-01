@@ -467,6 +467,28 @@ package body Lui.Models is
       return Model.Queued_Render;
    end Queued_Render;
 
+   ------------------------------
+   -- Remove_All_Inline_Models --
+   ------------------------------
+
+   procedure Remove_All_Inline_Models
+     (From_Model : in out Root_Object_Model'Class)
+   is
+   begin
+      while not From_Model.Inline_Models.Is_Empty loop
+         declare
+            M : constant Object_Model :=
+                  From_Model.Inline_Models.First_Element.Model;
+         begin
+            From_Model.Inline_Models.Delete_First;
+            M.Parent := null;
+            From_Model.On_Model_Removed (M);
+         end;
+      end loop;
+
+      From_Model.Queue_Render;
+   end Remove_All_Inline_Models;
+
    -------------------------
    -- Remove_Inline_Model --
    -------------------------
