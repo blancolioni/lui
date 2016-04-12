@@ -94,6 +94,15 @@ package body Lui.Gtk_UI is
       Line_Width : in     Natural := 1);
 
    overriding
+   procedure Draw_Ellipse
+     (Renderer   : in out Cairo_Renderer;
+      X, Y       : in     Integer;
+      R1, R2     : in     Positive;
+      Colour     : in     Lui.Colours.Colour_Type;
+      Filled     : in     Boolean;
+      Line_Width : in     Natural := 1);
+
+   overriding
    procedure Draw_Line
      (Renderer   : in out Cairo_Renderer;
       X1, Y1     : in     Integer;
@@ -505,6 +514,47 @@ package body Lui.Gtk_UI is
       end if;
 
    end Draw_Circle;
+
+   ------------------
+   -- Draw_Ellipse --
+   ------------------
+
+   overriding procedure Draw_Ellipse
+     (Renderer   : in out Cairo_Renderer;
+      X, Y       : in     Integer;
+      R1, R2     : in     Positive;
+      Colour     : in     Lui.Colours.Colour_Type;
+      Filled     : in     Boolean;
+      Line_Width : in     Natural := 1)
+   is
+      use Glib;
+   begin
+      Set_Colour (Renderer, Colour);
+      Cairo.Set_Line_Width
+        (Renderer.Context,
+         Width => Glib.Gdouble (Line_Width)
+         / Glib.Gdouble (Positive'Min (R1, R2)));
+
+      Cairo.Save (Renderer.Context);
+      Cairo.Translate
+        (Renderer.Context,
+         Glib.Gdouble (X + Renderer.Origin_X),
+         Glib.Gdouble (Y + Renderer.Origin_Y));
+      Cairo.Scale
+        (Renderer.Context, Glib.Gdouble (R1), Glib.Gdouble (R2));
+
+      Cairo.Arc (Renderer.Context, 0.0, 0.0, 1.0,
+                 0.0, 2.0 * Ada.Numerics.Pi);
+
+      if Filled then
+         Cairo.Fill (Renderer.Context);
+      else
+         Cairo.Stroke (Renderer.Context);
+      end if;
+
+      Cairo.Restore (Renderer.Context);
+
+   end Draw_Ellipse;
 
    ----------------
    -- Draw_Image --

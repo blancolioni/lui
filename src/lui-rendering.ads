@@ -28,12 +28,22 @@ package Lui.Rendering is
       return Buffer_Point_Type
       is abstract;
 
-   procedure Draw_Circle (Renderer   : in out Root_Renderer;
-                          X, Y       : in     Integer;
-                          Radius     : in     Positive;
-                          Colour     : in     Lui.Colours.Colour_Type;
-                          Filled     : in     Boolean;
-                          Line_Width : in Natural := 1)
+   procedure Draw_Circle
+     (Renderer   : in out Root_Renderer;
+      X, Y       : in     Integer;
+      Radius     : in     Positive;
+      Colour     : in     Lui.Colours.Colour_Type;
+      Filled     : in     Boolean;
+      Line_Width : in Natural := 1)
+   is abstract;
+
+   procedure Draw_Ellipse
+     (Renderer   : in out Root_Renderer;
+      X, Y       : in     Integer;
+      R1, R2     : in     Positive;
+      Colour     : in     Lui.Colours.Colour_Type;
+      Filled     : in     Boolean;
+      Line_Width : in Natural := 1)
    is abstract;
 
    procedure Draw_Rectangle
