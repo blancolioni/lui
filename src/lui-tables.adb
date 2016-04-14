@@ -1,5 +1,3 @@
-with Ada.Text_IO;
-
 package body Lui.Tables is
 
    ------------------
@@ -109,22 +107,8 @@ package body Lui.Tables is
      (Table : in out Root_Model_Table)
       return Boolean
    is
-      procedure Report_Reason (Reason : String);
-
-      -------------------
-      -- Report_Reason --
-      -------------------
-
-      procedure Report_Reason (Reason : String) is
-      begin
-         Ada.Text_IO.Put_Line
-           (Table.Name.all
-            & ": layout-change: " & Reason);
-      end Report_Reason;
-
    begin
       if Table.First then
-         Report_Reason ("first render");
          return True;
       elsif Table.Cache = null then
          return False;
@@ -138,11 +122,9 @@ package body Lui.Tables is
                            Root_Model_Table'Class (Table).Column_Count;
          begin
             if Cache_Rows /= New_Rows then
-               Report_Reason ("rows changed");
                Table.Cache := null;
                return True;
             elsif Cache_Cols /= New_Cols then
-               Report_Reason ("cols changed");
                Table.Cache := null;
                return True;
             else
