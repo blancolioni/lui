@@ -4,6 +4,9 @@ with Lui.Colours;
 
 package Lui.Rendering is
 
+   procedure Set_Image_Path
+     (Path : String);
+
    type Buffer_Point_Type is
       record
          X, Y : Integer;

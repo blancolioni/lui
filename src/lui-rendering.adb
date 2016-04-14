@@ -19,4 +19,16 @@ package body Lui.Rendering is
         & "/" & Image_File_Name;
    end Image_Path;
 
+   --------------------
+   -- Set_Image_Path --
+   --------------------
+
+   procedure Set_Image_Path
+     (Path : String)
+   is
+   begin
+      Local_Image_Path :=
+        Ada.Strings.Unbounded.To_Unbounded_String (Path);
+   end Set_Image_Path;
+
 end Lui.Rendering;
