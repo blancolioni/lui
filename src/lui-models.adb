@@ -648,6 +648,26 @@ package body Lui.Models is
       end if;
    end Tables;
 
+   ---------------------
+   -- Update_Property --
+   ---------------------
+
+   procedure Update_Property
+     (Item      : in out Root_Object_Model;
+      Name      : in     String;
+      New_Value : in String)
+   is
+   begin
+      for I in 1 .. Item.Properties.Last_Index loop
+         if Item.Properties.Element (I).Name.all = Name then
+            Item.Properties (I).Value := new String'(New_Value);
+            return;
+         end if;
+      end loop;
+
+      Item.Add_Property (Name, New_Value);
+   end Update_Property;
+
    -----------
    -- Width --
    -----------

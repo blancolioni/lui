@@ -184,6 +184,11 @@ package Lui.Models is
                            Name  : in     String;
                            Value : in Integer);
 
+   procedure Update_Property
+     (Item      : in out Root_Object_Model;
+      Name      : in     String;
+      New_Value : in String);
+
    procedure Set_Background
      (Item : in out Root_Object_Model'Class;
       Colour : Lui.Colours.Colour_Type);
