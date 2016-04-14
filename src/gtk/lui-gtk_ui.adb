@@ -1082,9 +1082,9 @@ package body Lui.Gtk_UI is
    begin
       for Info of State.Tables loop
          if Info.Table = Table then
-            Info.View.Freeze_Child_Notify;
+            --  Info.View.Freeze_Child_Notify;
             Refresh_Table (Info.Table, Info.Store);
-            Info.View.Thaw_Child_Notify;
+            --  Info.View.Thaw_Child_Notify;
          end if;
       end loop;
    end Refresh_Table;
