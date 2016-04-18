@@ -927,7 +927,7 @@ package body Lui.Gtk_UI is
             when Lui.Models.Translation =>
                Model.Move (X - State.Last_Drag_X, Y - State.Last_Drag_Y);
          end case;
-         W.Queue_Draw;
+         Model.Queue_Render;
          State.Last_Drag_X := X;
          State.Last_Drag_Y := Y;
       else
@@ -1014,6 +1014,7 @@ package body Lui.Gtk_UI is
       return Boolean
    is
       use type Gdk.Types.Gdk_Modifier_Type;
+      pragma Unreferenced (W);
    begin
       case Event.Scroll.Direction is
          when Gdk.Event.Scroll_Up | Gdk.Event.Scroll_Left =>
@@ -1025,7 +1026,7 @@ package body Lui.Gtk_UI is
          when Gdk.Event.Scroll_Smooth =>
             null;
       end case;
-      W.Queue_Draw;
+      Model.Queue_Render;
       return True;
    end Model_Zoom_Handler;
 

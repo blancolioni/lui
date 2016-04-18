@@ -326,6 +326,7 @@ package body Lui.Models is
    is
    begin
       Updated := Model.Handle_Update;
+      Updated := Updated or else Model.Queued_Render;
 
       for Inline_Model of Model.Inline_Models loop
          declare
