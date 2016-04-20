@@ -60,6 +60,18 @@ package body Lui.Models.Model_3D is
       end if;
    end Add_To_Z_Buffer;
 
+   ------------------
+   -- Begin_Object --
+   ------------------
+
+   procedure Begin_Object
+     (Model : in out Root_3D_Model'Class;
+      Id    : Positive)
+   is
+   begin
+      Model.Current_Object_Id := Id;
+   end Begin_Object;
+
    -------------------
    -- Begin_Surface --
    -------------------
@@ -246,6 +258,17 @@ package body Lui.Models.Model_3D is
       end loop;
    end Draw_Z_Buffer;
 
+   ----------------
+   -- End_Object --
+   ----------------
+
+   procedure End_Object
+     (Model : in out Root_3D_Model'Class)
+   is
+   begin
+      Model.Current_Object_Id := 0;
+   end End_Object;
+
    -----------------
    -- End_Surface --
    -----------------
@@ -256,6 +279,21 @@ package body Lui.Models.Model_3D is
    begin
       Model.Surfaces.Append (Model.Current_Surface);
    end End_Surface;
+
+   -------------------
+   -- Get_Object_Id --
+   -------------------
+
+   function Get_Object_Id
+     (Model : Root_3D_Model'Class;
+      X, Y  : Integer)
+      return Natural
+   is
+      pragma Unreferenced (Model);
+      pragma Unreferenced (X, Y);
+   begin
+      return 0;
+   end Get_Object_Id;
 
    ------------------------
    -- Icosohedral_Sphere --

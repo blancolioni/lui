@@ -57,6 +57,13 @@ package Lui.Models.Model_3D is
      (Model   : in out Root_3D_Model'Class;
       Matrix  : Matrix_4);
 
+   procedure Begin_Object
+     (Model : in out Root_3D_Model'Class;
+      Id    : Positive);
+
+   procedure End_Object
+     (Model : in out Root_3D_Model'Class);
+
    procedure Begin_Surface
      (Model  : in out Root_3D_Model'Class;
       Colour : Lui.Colours.Colour_Type);
@@ -71,6 +78,11 @@ package Lui.Models.Model_3D is
 
    procedure End_Surface
      (Model  : in out Root_3D_Model'Class);
+
+   function Get_Object_Id
+     (Model : Root_3D_Model'Class;
+      X, Y  : Integer)
+      return Natural;
 
    procedure Sphere
      (Model      : in out Root_3D_Model'Class;
@@ -140,11 +152,12 @@ private
 
    type Root_3D_Model is abstract new Root_Object_Model with
       record
-         Eye_Vector      : Vector_3;
-         Current_Surface : Surface;
-         Current_Matrix  : Matrix_4;
-         Matrices        : Matrix_Stacks.List;
-         Surfaces        : Surface_Vectors.Vector;
+         Eye_Vector        : Vector_3;
+         Current_Surface   : Surface;
+         Current_Matrix    : Matrix_4;
+         Matrices          : Matrix_Stacks.List;
+         Surfaces          : Surface_Vectors.Vector;
+         Current_Object_Id : Natural := 0;
       end record;
 
 end Lui.Models.Model_3D;
