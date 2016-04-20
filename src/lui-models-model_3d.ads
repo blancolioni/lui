@@ -34,6 +34,11 @@ package Lui.Models.Model_3D is
      (Model : in out Root_3D_Model'Class;
       Mode  : Render_Mode);
 
+   function Get_Object_Id
+     (Model : in out Root_3D_Model'Class;
+      X, Y  : Integer)
+      return Natural;
+
    overriding procedure Render
      (Model    : in out Root_3D_Model;
       Renderer : in out Lui.Rendering.Root_Renderer'Class);

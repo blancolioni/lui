@@ -1,3 +1,5 @@
+with WL.Bitmap_IO;
+
 with Lui.Elementary_Functions;
 
 package body Lui.Models.Model_3D is
@@ -27,6 +29,94 @@ package body Lui.Models.Model_3D is
 
    procedure Draw_Z_Buffer
      (Renderer : in out Lui.Rendering.Root_Renderer'Class);
+
+   type Object_Hit_Renderer is
+     new Lui.Rendering.Root_Renderer with
+      record
+         Hit                : Natural := 0;
+         Object_X, Object_Y : Integer := 0;
+         Origin_X, Origin_Y : Integer := 0;
+      end record;
+
+   overriding
+   procedure Set_Origin
+     (Renderer : in out Object_Hit_Renderer;
+      X, Y     : in     Integer);
+
+   overriding function Get_Origin
+     (Renderer : Object_Hit_Renderer)
+      return Lui.Rendering.Buffer_Point_Type
+   is ((Renderer.Origin_X, Renderer.Origin_Y));
+
+   overriding procedure Draw_Circle
+     (Renderer   : in out Object_Hit_Renderer;
+      X, Y       : in     Integer;
+      Radius     : in     Positive;
+      Colour     : in     Lui.Colours.Colour_Type;
+      Filled     : in     Boolean;
+      Line_Width : in     Natural := 1);
+
+   overriding procedure Draw_Ellipse
+     (Renderer   : in out Object_Hit_Renderer;
+      X, Y       : in     Integer;
+      R1, R2     : in     Positive;
+      Colour     : in     Lui.Colours.Colour_Type;
+      Filled     : in     Boolean;
+      Line_Width : in     Natural := 1);
+
+   overriding procedure Draw_Line
+     (Renderer   : in out Object_Hit_Renderer;
+      X1, Y1     : in     Integer;
+      X2, Y2     : in     Integer;
+      Colour     : in     Lui.Colours.Colour_Type;
+      Line_Width : Natural := 1)
+   is null;
+
+   overriding procedure Draw_Polygon
+     (Renderer : in out Object_Hit_Renderer;
+      Vertices : Lui.Rendering.Buffer_Points;
+      Colour   : Lui.Colours.Colour_Type;
+      Filled   : Boolean);
+
+   overriding procedure Draw_Rectangle
+     (Renderer : in out Object_Hit_Renderer;
+      X, Y     : in     Integer;
+      W, H     : in     Natural;
+      Colour   : in     Lui.Colours.Colour_Type;
+      Filled   : in     Boolean);
+
+   overriding procedure Draw_String
+     (Renderer : in out Object_Hit_Renderer;
+      X, Y     : in     Integer;
+      Size     : in     Positive;
+      Colour   : in     Lui.Colours.Colour_Type;
+      Text     : in     String)
+   is null;
+
+   overriding procedure Draw_Image
+     (Renderer : in out Object_Hit_Renderer;
+      X, Y     : in     Integer;
+      W, H     : in     Positive;
+      Resource : in     String);
+
+   overriding procedure Create_Bitmap_Resource
+     (Renderer      : in out Object_Hit_Renderer;
+      Resource_Name : in     String;
+      Bitmap        : in     WL.Bitmap_IO.Bitmap_Type)
+   is null;
+
+   overriding function Have_Resource
+     (Renderer      : Object_Hit_Renderer;
+      Resource_Name : String)
+      return Boolean
+   is (True);
+
+   function Colour_To_Object
+     (Colour : Lui.Colours.Colour_Type)
+      return Natural
+   is (Natural (Colour.Red * 100.0)
+       + 100 * Natural (Colour.Green * 100.0)
+       + 100 * 100 * Natural (Colour.Blue * 100.0));
 
    ---------------------
    -- Add_To_Z_Buffer --
@@ -250,6 +340,126 @@ package body Lui.Models.Model_3D is
          Detail => Detail);
    end Cylinder;
 
+   -----------------
+   -- Draw_Circle --
+   -----------------
+
+   overriding procedure Draw_Circle
+     (Renderer   : in out Object_Hit_Renderer;
+      X, Y       : in     Integer;
+      Radius     : in     Positive;
+      Colour     : in     Lui.Colours.Colour_Type;
+      Filled     : in     Boolean;
+      Line_Width : in     Natural := 1)
+   is
+      pragma Unreferenced (Filled);
+      pragma Unreferenced (Line_Width);
+   begin
+      if (X - Renderer.Object_X) ** 2
+        + (Y - Renderer.Object_Y) ** 2
+        < Radius ** 2
+      then
+         Renderer.Hit := Colour_To_Object (Colour);
+      end if;
+   end Draw_Circle;
+
+   ------------------
+   -- Draw_Ellipse --
+   ------------------
+
+   overriding procedure Draw_Ellipse
+     (Renderer   : in out Object_Hit_Renderer;
+      X, Y       : in     Integer;
+      R1, R2     : in     Positive;
+      Colour     : in     Lui.Colours.Colour_Type;
+      Filled     : in     Boolean;
+      Line_Width : in     Natural := 1)
+   is
+      pragma Unreferenced (Filled);
+      pragma Unreferenced (Line_Width);
+   begin
+      if (Real (X - Renderer.Object_X) / Real (R1)) ** 2
+        + (Real (Y - Renderer.Object_Y) / Real (R2)) ** 2
+        < 1.0
+      then
+         Renderer.Hit := Colour_To_Object (Colour);
+      end if;
+   end Draw_Ellipse;
+
+   ----------------
+   -- Draw_Image --
+   ----------------
+
+   overriding procedure Draw_Image
+     (Renderer : in out Object_Hit_Renderer;
+      X, Y     : in     Integer;
+      W, H     : in     Positive;
+      Resource : in     String)
+   is
+   begin
+      if Renderer.Object_X in X .. X + W
+        and then Renderer.Object_Y in Y .. Y + H
+      then
+         Renderer.Hit := Natural'Value (Resource);
+      end if;
+   end Draw_Image;
+
+   ------------------
+   -- Draw_Polygon --
+   ------------------
+
+   overriding procedure Draw_Polygon
+     (Renderer : in out Object_Hit_Renderer;
+      Vertices : Lui.Rendering.Buffer_Points;
+      Colour   : Lui.Colours.Colour_Type;
+      Filled   : Boolean)
+   is
+      pragma Unreferenced (Filled);
+      X1, Y1 : Integer := Integer'Last;
+      X2, Y2 : Integer := Integer'First;
+   begin
+      for P of Vertices loop
+         if P.X < X1 then
+            X1 := P.X;
+         end if;
+         if P.X > X2 then
+            X2 := P.X;
+         end if;
+         if P.Y < Y1 then
+            Y1 := P.Y;
+         end if;
+         if P.Y > Y2 then
+            Y2 := P.Y;
+         end if;
+      end loop;
+
+      if Renderer.Object_X in X1 .. X2
+        and then Renderer.Object_Y in Y1 .. Y2
+      then
+         Renderer.Hit := Colour_To_Object (Colour);
+      end if;
+   end Draw_Polygon;
+
+   --------------------
+   -- Draw_Rectangle --
+   --------------------
+
+   overriding procedure Draw_Rectangle
+     (Renderer : in out Object_Hit_Renderer;
+      X, Y     : in     Integer;
+      W, H     : in     Natural;
+      Colour   : in     Lui.Colours.Colour_Type;
+      Filled   : in     Boolean)
+   is
+      pragma Unreferenced (Filled);
+   begin
+      if Renderer.Object_X in X .. X + W
+        and then Renderer.Object_Y in Y .. Y + H
+      then
+         Renderer.Hit := Colour_To_Object (Colour);
+      end if;
+   end Draw_Rectangle;
+
    -------------------
    -- Draw_Z_Buffer --
    -------------------
@@ -288,6 +498,25 @@ package body Lui.Models.Model_3D is
    begin
       Model.Surfaces.Append (Model.Current_Surface);
    end End_Surface;
+
+   -------------------
+   -- Get_Object_Id --
+   -------------------
+
+   function Get_Object_Id
+     (Model : in out Root_3D_Model'Class;
+      X, Y  : Integer)
+      return Natural
+   is
+      Renderer : Object_Hit_Renderer;
+   begin
+      Renderer.Object_X := X;
+      Renderer.Object_Y := Y;
+      Model.Set_Render_Mode (Object_Ids);
+      Model.Render (Renderer);
+      Model.Set_Render_Mode (Normal);
+      return Renderer.Hit;
+   end Get_Object_Id;
 
    ------------------------
    -- Icosohedral_Sphere --
@@ -529,6 +758,19 @@ package body Lui.Models.Model_3D is
    begin
       Rotate (Model.Current_Matrix, A, B, C);
    end Rotate;
+
+   ----------------
+   -- Set_Origin --
+   ----------------
+
+   overriding procedure Set_Origin
+     (Renderer : in out Object_Hit_Renderer;
+      X, Y     : in     Integer)
+   is
+   begin
+      Renderer.Origin_X := X;
+      Renderer.Origin_Y := Y;
+   end Set_Origin;
 
    ---------------------
    -- Set_Render_Mode --
