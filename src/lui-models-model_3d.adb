@@ -70,6 +70,11 @@ package body Lui.Models.Model_3D is
    is
    begin
       Model.Current_Object_Id := Id;
+      Model.Object_Id_Colour :=
+        (Real (Id mod 100) / 100.0,
+         Real (Id / 100 mod 100) / 100.0,
+         Real (Id / 100 / 100 mod 100) / 100.0,
+         1.0);
    end Begin_Object;
 
    -------------------
@@ -82,7 +87,10 @@ package body Lui.Models.Model_3D is
    is
    begin
       Model.Current_Surface.Vs.Clear;
-      Model.Current_Surface.Colour := Colour;
+      Model.Current_Surface.Colour :=
+        (case Model.Current_Render_Mode is
+            when Normal     => Colour,
+            when Object_Ids => Model.Object_Id_Colour);
    end Begin_Surface;
 
    ------------------
@@ -267,6 +275,7 @@ package body Lui.Models.Model_3D is
    is
    begin
       Model.Current_Object_Id := 0;
+      Model.Object_Id_Colour := (0.0, 0.0, 0.0, 1.0);
    end End_Object;
 
    -----------------
@@ -279,21 +288,6 @@ package body Lui.Models.Model_3D is
    begin
       Model.Surfaces.Append (Model.Current_Surface);
    end End_Surface;
-
-   -------------------
-   -- Get_Object_Id --
-   -------------------
-
-   function Get_Object_Id
-     (Model : Root_3D_Model'Class;
-      X, Y  : Integer)
-      return Natural
-   is
-      pragma Unreferenced (Model);
-      pragma Unreferenced (X, Y);
-   begin
-      return 0;
-   end Get_Object_Id;
 
    ------------------------
    -- Icosohedral_Sphere --
@@ -535,6 +529,18 @@ package body Lui.Models.Model_3D is
    begin
       Rotate (Model.Current_Matrix, A, B, C);
    end Rotate;
+
+   ---------------------
+   -- Set_Render_Mode --
+   ---------------------
+
+   procedure Set_Render_Mode
+     (Model : in out Root_3D_Model'Class;
+      Mode  : Render_Mode)
+   is
+   begin
+      Model.Current_Render_Mode := Mode;
+   end Set_Render_Mode;
 
    ------------
    -- Sphere --

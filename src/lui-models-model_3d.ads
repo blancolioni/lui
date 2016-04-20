@@ -28,6 +28,12 @@ package Lui.Models.Model_3D is
 
    procedure Create_Scene (Item : in out Root_3D_Model) is abstract;
 
+   type Render_Mode is (Normal, Object_Ids);
+
+   procedure Set_Render_Mode
+     (Model : in out Root_3D_Model'Class;
+      Mode  : Render_Mode);
+
    overriding procedure Render
      (Model    : in out Root_3D_Model;
       Renderer : in out Lui.Rendering.Root_Renderer'Class);
@@ -78,11 +84,6 @@ package Lui.Models.Model_3D is
 
    procedure End_Surface
      (Model  : in out Root_3D_Model'Class);
-
-   function Get_Object_Id
-     (Model : Root_3D_Model'Class;
-      X, Y  : Integer)
-      return Natural;
 
    procedure Sphere
      (Model      : in out Root_3D_Model'Class;
@@ -152,12 +153,14 @@ private
 
    type Root_3D_Model is abstract new Root_Object_Model with
       record
-         Eye_Vector        : Vector_3;
-         Current_Surface   : Surface;
-         Current_Matrix    : Matrix_4;
-         Matrices          : Matrix_Stacks.List;
-         Surfaces          : Surface_Vectors.Vector;
-         Current_Object_Id : Natural := 0;
+         Eye_Vector          : Vector_3;
+         Current_Surface     : Surface;
+         Current_Matrix      : Matrix_4;
+         Matrices            : Matrix_Stacks.List;
+         Surfaces            : Surface_Vectors.Vector;
+         Current_Object_Id   : Natural := 0;
+         Object_Id_Colour    : Lui.Colours.Colour_Type;
+         Current_Render_Mode : Render_Mode := Normal;
       end record;
 
 end Lui.Models.Model_3D;
