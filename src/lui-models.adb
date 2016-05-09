@@ -344,13 +344,17 @@ package body Lui.Models is
    ----------------
 
    procedure Initialise
-     (Item    : in out Root_Object_Model;
-      Name    : in     String;
-      Tables  : Lui.Tables.Array_Of_Model_Tables := Lui.Tables.No_Tables;
-      Gadgets : Lui.Gadgets.Array_Of_Gadgets := Lui.Gadgets.No_Gadgets)
+     (Item              : in out Root_Object_Model;
+      Name              : in     String;
+      Last_Render_Layer : Lui.Rendering.Render_Layer := 1;
+      Tables            : Lui.Tables.Array_Of_Model_Tables :=
+        Lui.Tables.No_Tables;
+      Gadgets           : Lui.Gadgets.Array_Of_Gadgets :=
+        Lui.Gadgets.No_Gadgets)
    is
    begin
       Item.Name := Ada.Strings.Unbounded.To_Unbounded_String (Name);
+      Item.Last_Render_Layer := Last_Render_Layer;
       Item.Background := Lui.Colours.Black;
       Item.Properties.Clear;
       Item.Tables :=
@@ -358,6 +362,18 @@ package body Lui.Models is
       Item.Gadgets :=
         new Lui.Gadgets.Array_Of_Gadgets'(Gadgets);
    end Initialise;
+
+   -----------------------
+   -- Last_Render_Layer --
+   -----------------------
+
+   function Last_Render_Layer
+     (Model : Root_Object_Model'Class)
+      return Lui.Rendering.Render_Layer
+   is
+   begin
+      return Model.Last_Render_Layer;
+   end Last_Render_Layer;
 
    -----------
    -- Model --

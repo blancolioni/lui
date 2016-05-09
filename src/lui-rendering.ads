@@ -14,7 +14,14 @@ package Lui.Rendering is
 
    type Buffer_Points is array (Positive range <>) of Buffer_Point_Type;
 
+   type Render_Layer is range 1 .. 16;
+
    type Root_Renderer is interface;
+
+   function Current_Render_Layer
+     (Renderer : Root_Renderer)
+      return Render_Layer
+      is abstract;
 
    function Image_Path
      (Renderer        : Root_Renderer'Class;

@@ -40,12 +40,15 @@ with Lui.Tables;
 
 package body Lui.Gtk_UI is
 
+   type Surface_Render_Layers is
+     array (Lui.Rendering.Render_Layer) of Cairo.Cairo_Surface;
+
    type Model_Object_Record is
      new Glib.Object.GObject_Record with
       record
          Model   : Lui.Models.Object_Model;
          Widget  : Gtk.Drawing_Area.Gtk_Drawing_Area;
-         Surface : Cairo.Cairo_Surface := Cairo.Null_Surface;
+         Layers  : Surface_Render_Layers;
          Width   : Glib.Gint;
          Height  : Glib.Gint;
       end record;
@@ -69,9 +72,10 @@ package body Lui.Gtk_UI is
    type Cairo_Renderer is
      new Lui.Rendering.Root_Renderer with
       record
-         Context  : Cairo.Cairo_Context;
-         Origin_X : Integer := 0;
-         Origin_Y : Integer := 0;
+         Context       : Cairo.Cairo_Context;
+         Current_Layer : Lui.Rendering.Render_Layer := 1;
+         Origin_X      : Integer := 0;
+         Origin_Y      : Integer := 0;
       end record;
 
    overriding
@@ -83,6 +87,11 @@ package body Lui.Gtk_UI is
      (Renderer : Cairo_Renderer)
       return Lui.Rendering.Buffer_Point_Type
    is ((Renderer.Origin_X, Renderer.Origin_Y));
+
+   overriding function Current_Render_Layer
+     (Renderer : Cairo_Renderer)
+      return Lui.Rendering.Render_Layer
+   is (Renderer.Current_Layer);
 
    overriding
    procedure Draw_Circle
@@ -156,9 +165,16 @@ package body Lui.Gtk_UI is
 
    Renderer : Cairo_Renderer;
 
+   procedure Render_Model_Layers
+     (Model   : Lui.Models.Object_Model;
+      Layers  : Surface_Render_Layers;
+      Width   : Glib.Gdouble;
+      Height  : Glib.Gdouble);
+
    procedure Render_Model
      (Model   : Lui.Models.Object_Model;
       Surface : Cairo.Cairo_Surface;
+      Layer   : Lui.Rendering.Render_Layer;
       Width   : Glib.Gdouble;
       Height  : Glib.Gdouble);
 
@@ -274,6 +290,7 @@ package body Lui.Gtk_UI is
 
    procedure Show_Model
      (Context       : Cairo.Cairo_Context;
+      Layer         : Lui.Rendering.Render_Layer;
       Width, Height : Glib.Gdouble;
       Model         : Lui.Models.Object_Model);
 
@@ -338,7 +355,7 @@ package body Lui.Gtk_UI is
                     (Glib.Object.GObject_Record with
                      Model   => Model,
                      Widget  => Page,
-                     Surface => Cairo.Null_Surface,
+                     Layers  => (others => Cairo.Null_Surface),
                      Width   => 1,
                      Height  => 1);
       begin
@@ -403,18 +420,26 @@ package body Lui.Gtk_UI is
    begin
       Slot.Width := Event.Width;
       Slot.Height := Event.Height;
-      if Slot.Surface /= Cairo.Null_Surface then
-         Cairo.Surface_Destroy (Slot.Surface);
-      end if;
-      Slot.Surface :=
-        Gdk.Window.Create_Similar_Surface
-          (Slot.Widget.Get_Window,
-           Cairo.Cairo_Content_Color_Alpha,
-           Slot.Width, Slot.Height);
+      for I in Lui.Rendering.Render_Layer range
+        1 .. Slot.Model.Last_Render_Layer
+      loop
+         declare
+            Surface : Cairo.Cairo_Surface renames Slot.Layers (I);
+         begin
+            if Surface /= Cairo.Null_Surface then
+               Cairo.Surface_Destroy (Surface);
+            end if;
+            Surface :=
+              Gdk.Window.Create_Similar_Surface
+                (Slot.Widget.Get_Window,
+                 Cairo.Cairo_Content_Color_Alpha,
+                 Slot.Width, Slot.Height);
 
-      Render_Model (Slot.Model, Slot.Surface,
-                    Glib.Gdouble (Slot.Width),
-                    Glib.Gdouble (Slot.Height));
+            Render_Model (Slot.Model, Surface, I,
+                          Glib.Gdouble (Slot.Width),
+                          Glib.Gdouble (Slot.Height));
+         end;
+      end loop;
 
       return True;
    end Configure_Model_Handler;
@@ -737,13 +762,16 @@ package body Lui.Gtk_UI is
       Cr   : Cairo.Cairo_Context)
       return Boolean
    is
+      use Lui.Rendering;
       Slot : Model_Object_Record renames
                Model_Object_Record (Self.all);
 
    begin
-      Cairo.Set_Source_Surface
-        (Cr, Slot.Surface, 0.0, 0.0);
-      Cairo.Paint (Cr);
+      for I in Render_Layer range 1 .. Slot.Model.Last_Render_Layer loop
+         Cairo.Set_Source_Surface
+           (Cr, Slot.Layers (I), 0.0, 0.0);
+         Cairo.Paint (Cr);
+      end loop;
       return True;
    end Expose_Model_Handler;
 
@@ -1097,6 +1125,7 @@ package body Lui.Gtk_UI is
    procedure Render_Model
      (Model   : Lui.Models.Object_Model;
       Surface : Cairo.Cairo_Surface;
+      Layer   : Lui.Rendering.Render_Layer;
       Width   : Glib.Gdouble;
       Height  : Glib.Gdouble)
    is
@@ -1104,9 +1133,28 @@ package body Lui.Gtk_UI is
                   Cairo.Create (Surface);
 
    begin
-      Show_Model (Context, Width, Height, Model);
+      Show_Model (Context, Layer, Width, Height, Model);
       Cairo.Destroy (Context);
    end Render_Model;
+
+   -------------------------
+   -- Render_Model_Layers --
+   -------------------------
+
+   procedure Render_Model_Layers
+     (Model   : Lui.Models.Object_Model;
+      Layers  : Surface_Render_Layers;
+      Width   : Glib.Gdouble;
+      Height  : Glib.Gdouble)
+   is
+      use Lui.Rendering;
+   begin
+      for I in 1 .. Model.Last_Render_Layer loop
+         if Model.Render_Layer_Changed (I) then
+            Render_Model (Model, Layers (I), I, Width, Height);
+         end if;
+      end loop;
+   end Render_Model_Layers;
 
    ------------------
    -- Select_Model --
@@ -1221,20 +1269,24 @@ package body Lui.Gtk_UI is
 
    procedure Show_Model
      (Context       : Cairo.Cairo_Context;
+      Layer         : Lui.Rendering.Render_Layer;
       Width, Height : Glib.Gdouble;
       Model         : Lui.Models.Object_Model)
    is
+      use type Lui.Rendering.Render_Layer;
    begin
       Renderer.Context := Context;
-      Set_Colour (Renderer, Model.Background);
+      Renderer.Current_Layer := Layer;
+      Cairo.Save (Context);
+      if Layer = Lui.Rendering.Render_Layer'First then
+         Set_Colour (Renderer, Model.Background);
+         Cairo.Set_Operator (Context, Cairo.Cairo_Operator_Source);
+      else
+         Cairo.Set_Operator (Context, Cairo.Cairo_Operator_Clear);
+      end if;
 
-      Cairo.Rectangle
-        (Cr     => Renderer.Context,
-         X      => 0.0,
-         Y      => 0.0,
-         Width  => Width,
-         Height => Height);
-      Cairo.Fill (Renderer.Context);
+      Cairo.Paint (Context);
+      Cairo.Restore (Context);
 
       Model.Resize (Natural (Width), Natural (Height));
       Model.Before_Render (Renderer);
@@ -1403,8 +1455,8 @@ package body Lui.Gtk_UI is
          begin
             Slot.Model.Idle_Update (Updated);
             if Slot.Model.Queued_Render or else Updated then
-               Render_Model
-                 (Slot.Model, Slot.Surface,
+               Render_Model_Layers
+                 (Slot.Model, Slot.Layers,
                   Glib.Gdouble (Slot.Width),
                   Glib.Gdouble (Slot.Height));
                Slot.Widget.Queue_Draw;

@@ -20,12 +20,18 @@ package Lui.Models is
 
    function Name (Item : Root_Object_Model'Class) return String;
 
-   procedure Initialise (Item    : in out Root_Object_Model;
-                         Name    : in     String;
-                         Tables  : Lui.Tables.Array_Of_Model_Tables :=
-                           Lui.Tables.No_Tables;
-                         Gadgets : Lui.Gadgets.Array_Of_Gadgets :=
-                           Lui.Gadgets.No_Gadgets);
+   procedure Initialise
+     (Item              : in out Root_Object_Model;
+      Name              : in     String;
+      Last_Render_Layer : Lui.Rendering.Render_Layer := 1;
+      Tables            : Lui.Tables.Array_Of_Model_Tables :=
+        Lui.Tables.No_Tables;
+      Gadgets           : Lui.Gadgets.Array_Of_Gadgets :=
+        Lui.Gadgets.No_Gadgets);
+
+   function Last_Render_Layer
+     (Model : Root_Object_Model'Class)
+      return Lui.Rendering.Render_Layer;
 
    procedure Set_Name (Item : in out Root_Object_Model'Class;
                        Name : String);
@@ -163,6 +169,12 @@ package Lui.Models is
      (Model   : in out Root_Object_Model'Class;
       Updated : out Boolean);
 
+   function Render_Layer_Changed
+     (Model : in out Root_Object_Model'Class;
+      Layer : Lui.Rendering.Render_Layer)
+      return Boolean
+   is (True);
+
    function Property_Count (Item : Root_Object_Model) return Natural;
    function Property_Name (Item : Root_Object_Model;
                            Index : Positive)
@@ -263,25 +275,26 @@ private
 
    type Root_Object_Model is abstract new Root_UI_Element with
       record
-         Name             : Ada.Strings.Unbounded.Unbounded_String;
-         Parent           : Object_Model;
-         First            : Boolean := True;
-         Properties       : Property_Vectors.Vector;
-         X, Y             : Integer := 0;
-         Width, Height    : Natural;
-         Eye_X, Eye_Y     : Real := 0.0;
-         Eye_Z            : Real := 1.0;
-         Rotated          : Boolean := False;
-         X_Rotation       : Real := 0.0;
-         Y_Rotation       : Real := 0.0;
-         Z_Rotation       : Real := 0.0;
-         Background       : Lui.Colours.Colour_Type := Lui.Colours.Black;
-         Border           : Lui.Colours.Colour_Type := Lui.Colours.Black;
-         Inline_Models    : Inline_Model_Lists.List;
-         Tables           : access Lui.Tables.Array_Of_Model_Tables;
-         Gadgets          : access Lui.Gadgets.Array_Of_Gadgets;
-         Internal_Changed : Boolean := False;
-         Queued_Render    : Boolean := True;
+         Name              : Ada.Strings.Unbounded.Unbounded_String;
+         Parent            : Object_Model;
+         Last_Render_Layer : Lui.Rendering.Render_Layer;
+         First             : Boolean := True;
+         Properties        : Property_Vectors.Vector;
+         X, Y              : Integer := 0;
+         Width, Height     : Natural;
+         Eye_X, Eye_Y      : Real := 0.0;
+         Eye_Z             : Real := 1.0;
+         Rotated           : Boolean := False;
+         X_Rotation        : Real := 0.0;
+         Y_Rotation        : Real := 0.0;
+         Z_Rotation        : Real := 0.0;
+         Background        : Lui.Colours.Colour_Type := Lui.Colours.Black;
+         Border            : Lui.Colours.Colour_Type := Lui.Colours.Black;
+         Inline_Models     : Inline_Model_Lists.List;
+         Tables            : access Lui.Tables.Array_Of_Model_Tables;
+         Gadgets           : access Lui.Gadgets.Array_Of_Gadgets;
+         Internal_Changed  : Boolean := False;
+         Queued_Render     : Boolean := True;
       end record;
 
    package Object_Model_Vectors is

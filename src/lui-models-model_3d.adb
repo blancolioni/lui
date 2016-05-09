@@ -33,9 +33,10 @@ package body Lui.Models.Model_3D is
    type Object_Hit_Renderer is
      new Lui.Rendering.Root_Renderer with
       record
-         Hit                : Natural := 0;
-         Object_X, Object_Y : Integer := 0;
-         Origin_X, Origin_Y : Integer := 0;
+         Hit                  : Natural := 0;
+         Object_X, Object_Y   : Integer := 0;
+         Origin_X, Origin_Y   : Integer := 0;
+         Current_Render_Layer : Lui.Rendering.Render_Layer;
       end record;
 
    overriding
@@ -47,6 +48,11 @@ package body Lui.Models.Model_3D is
      (Renderer : Object_Hit_Renderer)
       return Lui.Rendering.Buffer_Point_Type
    is ((Renderer.Origin_X, Renderer.Origin_Y));
+
+   overriding function Current_Render_Layer
+     (Renderer : Object_Hit_Renderer)
+      return Lui.Rendering.Render_Layer
+   is (Renderer.Current_Render_Layer);
 
    overriding procedure Draw_Circle
      (Renderer   : in out Object_Hit_Renderer;
