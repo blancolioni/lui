@@ -174,9 +174,7 @@ package body Lui.Gtk_UI is
    procedure Render_Model
      (Model   : Lui.Models.Object_Model;
       Surface : Cairo.Cairo_Surface;
-      Layer   : Lui.Rendering.Render_Layer;
-      Width   : Glib.Gdouble;
-      Height  : Glib.Gdouble);
+      Layer   : Lui.Rendering.Render_Layer);
 
    package Image_Maps is
      new Ada.Containers.Hashed_Maps
@@ -291,7 +289,6 @@ package body Lui.Gtk_UI is
    procedure Show_Model
      (Context       : Cairo.Cairo_Context;
       Layer         : Lui.Rendering.Render_Layer;
-      Width, Height : Glib.Gdouble;
       Model         : Lui.Models.Object_Model);
 
    procedure Show_Gadget
@@ -434,12 +431,13 @@ package body Lui.Gtk_UI is
                 (Slot.Widget.Get_Window,
                  Cairo.Cairo_Content_Color_Alpha,
                  Slot.Width, Slot.Height);
-
-            Render_Model (Slot.Model, Surface, I,
-                          Glib.Gdouble (Slot.Width),
-                          Glib.Gdouble (Slot.Height));
          end;
       end loop;
+
+      Render_Model_Layers
+        (Slot.Model, Slot.Layers,
+         Glib.Gdouble (Slot.Width),
+         Glib.Gdouble (Slot.Height));
 
       return True;
    end Configure_Model_Handler;
@@ -1125,15 +1123,13 @@ package body Lui.Gtk_UI is
    procedure Render_Model
      (Model   : Lui.Models.Object_Model;
       Surface : Cairo.Cairo_Surface;
-      Layer   : Lui.Rendering.Render_Layer;
-      Width   : Glib.Gdouble;
-      Height  : Glib.Gdouble)
+      Layer   : Lui.Rendering.Render_Layer)
    is
       Context : constant Cairo.Cairo_Context :=
                   Cairo.Create (Surface);
 
    begin
-      Show_Model (Context, Layer, Width, Height, Model);
+      Show_Model (Context, Layer, Model);
       Cairo.Destroy (Context);
    end Render_Model;
 
@@ -1149,11 +1145,47 @@ package body Lui.Gtk_UI is
    is
       use Lui.Rendering;
    begin
+      Model.Resize (Natural (Width), Natural (Height));
+      Model.Before_Render (Renderer);
+
       for I in 1 .. Model.Last_Render_Layer loop
          if Model.Render_Layer_Changed (I) then
-            Render_Model (Model, Layers (I), I, Width, Height);
+            Render_Model (Model, Layers (I), I);
          end if;
       end loop;
+      Model.After_Render (Renderer);
+
+      if Model.Properties_Changed then
+         for Gadget of Model.Gadgets loop
+            Show_Gadget (Gadget, Model);
+         end loop;
+
+         Model.Clear_Changed;
+      end if;
+
+      declare
+         Reload_Tables : Boolean := False;
+         Tables        : constant Lui.Tables.Array_Of_Model_Tables :=
+                           Model.Tables;
+      begin
+         for I in 1 .. Tables'Length loop
+            if Tables (I).Layout_Changed then
+               Reload_Tables := True;
+            elsif Tables (I).Contents_Changed then
+               Refresh_Table (Tables (I));
+            end if;
+            Tables (I).Clear_Changed;
+         end loop;
+
+         if Reload_Tables then
+            State.Main.Clear_Features (UI_Table);
+            State.Tables.Clear;
+            for Table of Model.Tables loop
+               Show_Table (Table);
+            end loop;
+         end if;
+      end;
+
    end Render_Model_Layers;
 
    ------------------
@@ -1270,7 +1302,6 @@ package body Lui.Gtk_UI is
    procedure Show_Model
      (Context       : Cairo.Cairo_Context;
       Layer         : Lui.Rendering.Render_Layer;
-      Width, Height : Glib.Gdouble;
       Model         : Lui.Models.Object_Model)
    is
       use type Lui.Rendering.Render_Layer;
@@ -1288,42 +1319,7 @@ package body Lui.Gtk_UI is
       Cairo.Paint (Context);
       Cairo.Restore (Context);
 
-      Model.Resize (Natural (Width), Natural (Height));
-      Model.Before_Render (Renderer);
       Model.Render (Renderer);
-      Model.After_Render (Renderer);
-
-      if Model.Properties_Changed then
-         for Gadget of Model.Gadgets loop
-            Show_Gadget (Gadget, Model);
-         end loop;
-
-         Model.Clear_Changed;
-      end if;
-
-      declare
-         Reload_Tables : Boolean := False;
-         Tables        : constant Lui.Tables.Array_Of_Model_Tables :=
-                            Model.Tables;
-      begin
-         for I in 1 .. Tables'Length loop
-            if Tables (I).Layout_Changed then
-               Reload_Tables := True;
-            elsif Tables (I).Contents_Changed then
-               Refresh_Table (Tables (I));
-            end if;
-            Tables (I).Clear_Changed;
-         end loop;
-
-         if Reload_Tables then
-            State.Main.Clear_Features (UI_Table);
-            State.Tables.Clear;
-            for Table of Model.Tables loop
-               Show_Table (Table);
-            end loop;
-         end if;
-      end;
-
    end Show_Model;
 
    ----------------
