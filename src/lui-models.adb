@@ -206,6 +206,29 @@ package body Lui.Models is
       return List.Models.Last_Index;
    end Count;
 
+   -----------------------------
+   -- Drag_Rotation_Behaviour --
+   -----------------------------
+
+   procedure Drag_Rotation_Behaviour
+     (Model     : in out Root_Object_Model'Class;
+      Y_Axis    : Boolean := True;
+      X_Axis    : Boolean := True;
+      Z_Axis    : Boolean := False;
+      Reverse_X : Boolean := False;
+      Reverse_Y : Boolean := False;
+      Reverse_Z : Boolean := False)
+   is
+   begin
+      Model.Drag_Translates := False;
+      Model.Enable_Drag_X := Y_Axis;
+      Model.Enable_Drag_Y := X_Axis;
+      Model.Enable_Drag_Z := Z_Axis;
+      Model.Reverse_Drag_X := Reverse_X;
+      Model.Reverse_Drag_Y := Reverse_Y;
+      Model.Reverse_Drag_Z := Reverse_Z;
+   end Drag_Rotation_Behaviour;
+
    -----------
    -- Eye_X --
    -----------
@@ -408,6 +431,37 @@ package body Lui.Models is
    begin
       return Ada.Strings.Unbounded.To_String (Item.Name);
    end Name;
+
+   -------------
+   -- On_Drag --
+   -------------
+
+   procedure On_Drag
+     (Model   : in out Root_Object_Model;
+      DX, DY  : Integer)
+   is
+      Effective_DX : constant Integer :=
+                       (if Model.Enable_Drag_X
+                        then (if Model.Reverse_Drag_X then -DX else DX)
+                        else 0);
+      Effective_DY : constant Integer :=
+                       (if Model.Enable_Drag_Y
+                        then (if Model.Reverse_Drag_Y then -DY else DY)
+                        else 0);
+   begin
+      if Effective_DX /= 0 or else Effective_DY /= 0 then
+         if Model.Drag_Translates then
+            Model.Move (-Effective_DX, -Effective_DY);
+         else
+            if Effective_DX /= 0 then
+               Model.Rotate_Y (Real (Effective_DX) / 10.0);
+            end if;
+            if Effective_DY /= 0 then
+               Model.Rotate_X (Real (Effective_DY) / 10.0);
+            end if;
+         end if;
+      end if;
+   end On_Drag;
 
    ------------------
    -- Parent_Model --

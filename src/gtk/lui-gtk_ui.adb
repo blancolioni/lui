@@ -894,7 +894,6 @@ package body Lui.Gtk_UI is
       return Boolean
    is
       use Gdk.Types.Keysyms;
-      Updated : Boolean := False;
       DX, DY  : Integer := 0;
    begin
       case Gdk.Event.Get_Key_Val (Event) is
@@ -911,21 +910,19 @@ package body Lui.Gtk_UI is
       end case;
 
       if DX /= 0 or else DY /= 0 then
-         case Model.Get_Drag_Behaviour is
-            when Lui.Models.Rotation =>
-               --  passing DY to rotate x and DX to rotate y is not
-               --  an error, but a consequence of the fact that it
-               --  is a more natural rotation from the user's perspective
-               Model.Rotate_X (Real (DY));
-               Model.Rotate_Y (Real (DX));
-            when Lui.Models.Translation =>
-               Model.Move (DX, DY);
-         end case;
-         Updated := True;
-      end if;
-
-      if Updated then
+         Model.On_Drag (DX, DY);
          W.Queue_Draw;
+--           case Model.Get_Drag_Behaviour is
+--              when Lui.Models.Rotation =>
+--                 --  passing DY to rotate x and DX to rotate y is not
+--                 --  an error, but a consequence of the fact that it
+--                 --  is a more natural rotation from the user's perspective
+--                 Model.Rotate_X (Real (DY));
+--                 Model.Rotate_Y (Real (DX));
+--              when Lui.Models.Translation =>
+--                 Model.Move (DX, DY);
+--           end case;
+--           Updated := True;
       end if;
       return True;
    end Model_Key_Press_Handler;
@@ -940,19 +937,23 @@ package body Lui.Gtk_UI is
       Model : Lui.Models.Object_Model)
       return Boolean
    is
+      pragma Unreferenced (W);
       X : constant Integer := Integer (Event.Motion.X);
       Y : constant Integer := Integer (Event.Motion.Y);
    begin
       if State.Dragging then
-         case Model.Get_Drag_Behaviour is
-            when Lui.Models.Rotation =>
-               Model.Rotate_Y ((Real (State.Last_Drag_X) - Real (X))
-                               * 360.0 / Real (W.Get_Allocated_Width));
-               Model.Rotate_X ((Real (Y) - Real (State.Last_Drag_Y))
-                               * 360.0 / Real (W.Get_Allocated_Height));
-            when Lui.Models.Translation =>
-               Model.Move (X - State.Last_Drag_X, Y - State.Last_Drag_Y);
-         end case;
+         Model.On_Drag
+           (X - State.Last_Drag_X, Y - State.Last_Drag_Y);
+
+--           case Model.Get_Drag_Behaviour is
+--              when Lui.Models.Rotation =>
+--                 Model.Rotate_Y ((Real (State.Last_Drag_X) - Real (X))
+--                                 * 360.0 / Real (W.Get_Allocated_Width));
+--                 Model.Rotate_X ((Real (Y) - Real (State.Last_Drag_Y))
+--                                 * 360.0 / Real (W.Get_Allocated_Height));
+--              when Lui.Models.Translation =>
+--                 Model.Move (X - State.Last_Drag_X, Y - State.Last_Drag_Y);
+--           end case;
          Model.Queue_Render;
          State.Last_Drag_X := X;
          State.Last_Drag_Y := Y;

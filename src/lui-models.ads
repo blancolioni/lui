@@ -141,12 +141,18 @@ package Lui.Models is
       Child : not null access Root_Object_Model'Class)
    is null;
 
-   type Drag_Behaviour is (Rotation, Translation);
+   procedure On_Drag
+     (Model   : in out Root_Object_Model;
+      DX, DY  : Integer);
 
-   function Get_Drag_Behaviour
-     (Model : Root_Object_Model)
-      return Drag_Behaviour
-   is (Rotation);
+   procedure Drag_Rotation_Behaviour
+     (Model     : in out Root_Object_Model'Class;
+      Y_Axis    : Boolean := True;
+      X_Axis    : Boolean := True;
+      Z_Axis    : Boolean := False;
+      Reverse_X : Boolean := False;
+      Reverse_Y : Boolean := False;
+      Reverse_Z : Boolean := False);
 
    function Gadgets
      (Model : Root_Object_Model)
@@ -295,6 +301,13 @@ private
          Gadgets           : access Lui.Gadgets.Array_Of_Gadgets;
          Internal_Changed  : Boolean := False;
          Queued_Render     : Boolean := True;
+         Drag_Translates   : Boolean := True;
+         Enable_Drag_X     : Boolean := True;
+         Enable_Drag_Y     : Boolean := True;
+         Enable_Drag_Z     : Boolean := False;
+         Reverse_Drag_X    : Boolean := True;
+         Reverse_Drag_Y    : Boolean := True;
+         Reverse_Drag_Z    : Boolean := False;
       end record;
 
    package Object_Model_Vectors is
