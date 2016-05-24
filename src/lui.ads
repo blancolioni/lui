@@ -16,7 +16,7 @@ package Lui is
       return String;
 
    function Approximate_Image
-     (Value : Natural)
+     (Value : Integer)
       return String;
 
 end Lui;

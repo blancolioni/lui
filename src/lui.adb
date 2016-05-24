@@ -11,7 +11,7 @@ package body Lui is
    -----------------------
 
    function Approximate_Image
-     (Value : Natural)
+     (Value : Integer)
       return String
    is
       Factors    : constant array (1 .. 3) of Natural :=
@@ -31,6 +31,9 @@ package body Lui is
       end Image;
 
    begin
+      if Value < 0 then
+         return "-" & Approximate_Image (-Value);
+      end if;
       for I in Factors'Range loop
          if Value > Factors (I) then
             return Image (Value / Factors (I)) &
