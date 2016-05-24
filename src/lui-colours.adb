@@ -1,5 +1,20 @@
 package body Lui.Colours is
 
+   -----------------
+   -- Apply_Alpha --
+   -----------------
+
+   function Apply_Alpha
+     (Colour : Colour_Type;
+      Alpha  : Unit_Real)
+      return Colour_Type
+   is
+   begin
+      return Result : Colour_Type := Colour do
+         Result.Alpha := Alpha;
+      end return;
+   end Apply_Alpha;
+
    ---------------
    -- To_Colour --
    ---------------
