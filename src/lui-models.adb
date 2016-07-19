@@ -192,6 +192,7 @@ package body Lui.Models is
                Item.Eye_Y := Item.Target_Y;
                Item.Eye_Z := Item.Target_Z;
                Item.Active_Transition := False;
+               Root_Object_Model'Class (Item).After_Transition;
             else
                Item.Progress :=
                  Real (Elapsed_Time) / Real (Item.Transition_Length);

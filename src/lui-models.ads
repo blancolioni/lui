@@ -170,6 +170,10 @@ package Lui.Models is
      (Model : Root_Object_Model)
       return Boolean;
 
+   procedure After_Transition
+     (Model : in out Root_Object_Model)
+   is null;
+
    function Handle_Update
      (Model : in out Root_Object_Model)
       return Boolean
