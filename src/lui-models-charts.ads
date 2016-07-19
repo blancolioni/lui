@@ -13,10 +13,13 @@ package Lui.Models.Charts is
      new Root_Object_Model with private;
 
    overriding procedure Initialise
-     (Chart   : in out Chart_Model;
-      Name    : in     String;
-      Tables  : Lui.Tables.Array_Of_Model_Tables := Lui.Tables.No_Tables;
-      Gadgets : Lui.Gadgets.Array_Of_Gadgets := Lui.Gadgets.No_Gadgets);
+     (Chart             : in out Chart_Model;
+      Name              : in     String;
+      Last_Render_Layer : Lui.Rendering.Render_Layer := 1;
+      Tables            : Lui.Tables.Array_Of_Model_Tables :=
+        Lui.Tables.No_Tables;
+      Gadgets           : Lui.Gadgets.Array_Of_Gadgets :=
+        Lui.Gadgets.No_Gadgets);
 
    procedure Append_Value
      (Model  : in out Chart_Model'Class;
