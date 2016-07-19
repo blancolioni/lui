@@ -15,6 +15,11 @@ package Lui.Colours is
       Alpha  : Unit_Real)
       return Colour_Type;
 
+   function Brighten
+     (Colour : Colour_Type;
+      Factor : Unit_Real)
+      return Colour_Type;
+
    Black : constant Colour_Type := (0.0, 0.0, 0.0, 1.0);
    White : constant Colour_Type := (1.0, 1.0, 1.0, 1.0);
 

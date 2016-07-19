@@ -15,6 +15,23 @@ package body Lui.Colours is
       end return;
    end Apply_Alpha;
 
+   --------------
+   -- Brighten --
+   --------------
+
+   function Brighten
+     (Colour : Colour_Type;
+      Factor : Unit_Real)
+      return Colour_Type
+   is
+      function Apply (X : Unit_Real) return Unit_Real
+      is (X + (1.0 - X) * Factor);
+
+   begin
+      return (Apply (Colour.Red), Apply (Colour.Green), Apply (Colour.Blue),
+              Colour.Alpha);
+   end Brighten;
+
    ---------------
    -- To_Colour --
    ---------------
