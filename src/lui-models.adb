@@ -618,6 +618,7 @@ package body Lui.Models is
    is
    begin
       Item.X_Rotation := Item.X_Rotation + Degrees;
+      Item.Rotated := True;
    end Rotate_X;
 
    --------------
@@ -629,6 +630,7 @@ package body Lui.Models is
    is
    begin
       Item.Y_Rotation := Item.Y_Rotation + Degrees;
+      Item.Rotated := True;
    end Rotate_Y;
 
    --------------
@@ -640,6 +642,7 @@ package body Lui.Models is
    is
    begin
       Item.Z_Rotation := Item.Z_Rotation + Degrees;
+      Item.Rotated := True;
    end Rotate_Z;
 
    --------------------
