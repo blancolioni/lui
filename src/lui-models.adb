@@ -4,6 +4,18 @@ with Lui.Elementary_Functions;
 
 package body Lui.Models is
 
+   -----------------------
+   -- Active_Transition --
+   -----------------------
+
+   function Active_Transition
+     (Model : Root_Object_Model)
+      return Boolean
+   is
+   begin
+      return Model.Active_Transition;
+   end Active_Transition;
+
    ----------------------
    -- Add_Inline_Model --
    ----------------------
@@ -169,6 +181,29 @@ package body Lui.Models is
    begin
       Item.Queued_Render := False;
       Renderer.Set_Origin (Item.X, Item.Y);
+      if Item.Active_Transition then
+         declare
+            use Ada.Calendar;
+            Elapsed_Time : constant Duration :=
+                             Ada.Calendar.Clock - Item.Transition_Start;
+         begin
+            if Elapsed_Time >= Item.Transition_Length then
+               Item.Eye_X := Item.Target_X;
+               Item.Eye_Y := Item.Target_Y;
+               Item.Eye_Z := Item.Target_Z;
+               Item.Active_Transition := False;
+            else
+               Item.Progress :=
+                 Real (Elapsed_Time) / Real (Item.Transition_Length);
+               Item.Eye_X :=
+                 Item.Start_X + Item.Progress * (Item.Target_X - Item.Start_X);
+               Item.Eye_Y :=
+                 Item.Start_Y + Item.Progress * (Item.Target_Y - Item.Start_Y);
+               Item.Eye_Z :=
+                 Item.Start_Z + Item.Progress * (Item.Target_Z - Item.Start_Z);
+            end if;
+         end;
+      end if;
    end Before_Render;
 
    ------------
@@ -311,14 +346,14 @@ package body Lui.Models is
       use Lui.Elementary_Functions;
       X_2D  : constant Real :=
         (if Model.Rotated
-         then X * Cos (Model.Y_Rotation, 360.0)
+         then (X - Model.Eye_X) * Cos (Model.Y_Rotation, 360.0)
          + Z * Sin (Model.Y_Rotation, 360.0)
-         else X);
+         else X - Model.Eye_X);
       Y_2D  : constant Real :=
         (if Model.Rotated
-         then Y * Cos (Model.X_Rotation, 360.0)
+         then (Y - Model.Eye_Y) * Cos (Model.X_Rotation, 360.0)
          + Z * Sin (Model.X_Rotation, 360.0)
-         else Y);
+         else Y - Model.Eye_Y);
       Scale : constant Real :=
                 Real (Natural'Min (Model.Width, Model.Height));
    begin
@@ -359,6 +394,8 @@ package body Lui.Models is
             Updated := Updated or else Model_Updated;
          end;
       end loop;
+
+      Updated := Updated or else Model.Active_Transition;
 
    end Idle_Update;
 
@@ -706,6 +743,28 @@ package body Lui.Models is
    begin
       Item.Name := Ada.Strings.Unbounded.To_Unbounded_String (Name);
    end Set_Name;
+
+   ----------------------
+   -- Start_Transition --
+   ----------------------
+
+   procedure Start_Transition
+     (Model                        : in out Root_Object_Model'Class;
+      Target_X, Target_Y, Target_Z : Real;
+      Length                       : Duration)
+   is
+   begin
+      Model.Start_X := Model.Eye_X;
+      Model.Start_Y := Model.Eye_Y;
+      Model.Start_Z := Model.Eye_Z;
+      Model.Target_X := Target_X;
+      Model.Target_Y := Target_Y;
+      Model.Target_Z := Target_Z;
+      Model.Transition_Length := Length;
+      Model.Progress := 0.0;
+      Model.Transition_Start := Ada.Calendar.Clock;
+      Model.Active_Transition := True;
+   end Start_Transition;
 
    ------------
    -- Tables --

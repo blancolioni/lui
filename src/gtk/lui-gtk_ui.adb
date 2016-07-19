@@ -1113,6 +1113,8 @@ package body Lui.Gtk_UI is
             --  Info.View.Freeze_Child_Notify;
             Refresh_Table (Info.Table, Info.Store);
             --  Info.View.Thaw_Child_Notify;
+--              Info.View.Queue_Draw;
+
          end if;
       end loop;
    end Refresh_Table;
@@ -1238,7 +1240,11 @@ package body Lui.Gtk_UI is
       B : constant Gdouble := Gdouble (Colour.Blue);
       A : constant Gdouble := Gdouble (Colour.Alpha);
    begin
-      Cairo.Set_Source_Rgba (Renderer.Context, R, G, B, A);
+      if A < 1.0 then
+         Cairo.Set_Source_Rgba (Renderer.Context, R, G, B, A);
+      else
+         Cairo.Set_Source_Rgba (Renderer.Context, R, G, B, A);
+      end if;
    end Set_Colour;
 
    --------------------

@@ -1,3 +1,4 @@
+private with Ada.Calendar;
 private with Ada.Containers.Doubly_Linked_Lists;
 private with Ada.Containers.Vectors;
 private with Ada.Strings.Unbounded;
@@ -95,7 +96,7 @@ package Lui.Models is
                           return String
                           is ("");
 
-   function Select_XY (Item : Root_Object_Model;
+   function Select_XY (Item : in out Root_Object_Model;
                        X, Y : Natural)
                        return Object_Model
    is (null);
@@ -165,10 +166,14 @@ package Lui.Models is
    procedure Clear_Changed
      (Model : in out Root_Object_Model);
 
+   function Active_Transition
+     (Model : Root_Object_Model)
+      return Boolean;
+
    function Handle_Update
      (Model : in out Root_Object_Model)
       return Boolean
-   is (False);
+   is (Model.Active_Transition);
    --  Return True if model was changed by this update
 
    procedure Idle_Update
@@ -257,6 +262,11 @@ package Lui.Models is
    procedure Append (List  : in out Active_Model_List;
                      Model : Object_Model);
 
+   procedure Start_Transition
+     (Model                        : in out Root_Object_Model'Class;
+      Target_X, Target_Y, Target_Z : Real;
+      Length                       : Duration);
+
 private
 
    type Property_Entry is
@@ -308,6 +318,16 @@ private
          Reverse_Drag_X    : Boolean := True;
          Reverse_Drag_Y    : Boolean := True;
          Reverse_Drag_Z    : Boolean := False;
+         Active_Transition : Boolean := False;
+         Transition_Length : Duration;
+         Transition_Start  : Ada.Calendar.Time;
+         Start_X           : Real;
+         Start_Y           : Real;
+         Start_Z           : Real;
+         Target_X          : Real;
+         Target_Y          : Real;
+         Target_Z          : Real;
+         Progress          : Unit_Real;
       end record;
 
    package Object_Model_Vectors is
