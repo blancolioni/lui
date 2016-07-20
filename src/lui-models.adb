@@ -345,25 +345,43 @@ package body Lui.Models is
       Screen_Z           : out Real)
    is
       use Lui.Elementary_Functions;
-      X_2D  : constant Real :=
-        (if Model.Rotated
-         then (X - Model.Eye_X) * Cos (Model.Y_Rotation, 360.0)
-         + Z * Sin (Model.Y_Rotation, 360.0)
-         else X - Model.Eye_X);
-      Y_2D  : constant Real :=
-        (if Model.Rotated
-         then (Y - Model.Eye_Y) * Cos (Model.X_Rotation, 360.0)
-         + Z * Sin (Model.X_Rotation, 360.0)
-         else Y - Model.Eye_Y);
+      Rot_Z : Real := Z;
+      Cos_X_Rot : constant Real :=
+                    (if Model.Rotated
+                     then Cos (Model.X_Rotation, 360.0)
+                     else 1.0);
+      Cos_Y_Rot : constant Real :=
+                    (if Model.Rotated
+                     then Cos (Model.Y_Rotation, 360.0)
+                     else 1.0);
+      Sin_X_Rot : constant Real :=
+                    (if Model.Rotated
+                     then Sin (Model.X_Rotation, 360.0)
+                     else 0.0);
+      Sin_Y_Rot : constant Real :=
+                    (if Model.Rotated
+                     then Sin (Model.Y_Rotation, 360.0)
+                     else 0.0);
+
+      X_2D      : constant Real :=
+                    (X - Model.Eye_X) * Cos_Y_Rot
+                    + Z * Sin_Y_Rot;
+      Y_2D      : constant Real :=
+                    (Y - Model.Eye_Y) * Cos_X_Rot
+                    + Z * Sin_X_Rot;
       Scale : constant Real :=
                 Real (Natural'Min (Model.Width, Model.Height));
    begin
       Screen_X := Integer (Scale * X_2D / Model.Eye_Z) + Model.Width / 2;
       Screen_Y := Integer (Scale * Y_2D / Model.Eye_Z) + Model.Height / 2;
-      Screen_Z :=
-        (if Model.Rotated
-         then Z * Cos (Model.X_Rotation, 360.0) * Cos (Model.Y_Rotation)
-         else Z);
+      if Model.Rotated then
+--           Rot_X := X * Cos (Model.Y_Rotation, 360.0)
+--             + Z * Sin (Model.Y_Rotation, 360.0);
+         Rot_Z := Z * Cos_Y_Rot - X * Sin_Y_Rot;
+         Rot_Z := Y * Sin_X_Rot + Rot_Z * Cos_X_Rot;
+      end if;
+
+      Screen_Z := Rot_Z;
    end Get_Screen_Coordinates;
 
    ------------
