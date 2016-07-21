@@ -133,6 +133,11 @@ package Lui.Models is
    procedure Remove_All_Inline_Models
      (From_Model : in out Root_Object_Model'Class);
 
+   procedure Scan_Inline_Models
+     (Parent_Model : Root_Object_Model'Class;
+      Process      : not null access
+        procedure (Model : Object_Model));
+
    function Parent_Model
      (Model : Root_Object_Model'Class)
       return Object_Model;

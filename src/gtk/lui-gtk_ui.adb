@@ -93,6 +93,10 @@ package body Lui.Gtk_UI is
       return Lui.Rendering.Render_Layer
    is (Renderer.Current_Layer);
 
+   overriding procedure Set_Current_Render_Layer
+     (Renderer : in out Cairo_Renderer;
+      Layer    : Lui.Rendering.Render_Layer);
+
    overriding
    procedure Draw_Circle
      (Renderer   : in out Cairo_Renderer;
@@ -1147,16 +1151,35 @@ package body Lui.Gtk_UI is
       Height  : Glib.Gdouble)
    is
       use Lui.Rendering;
+
+      procedure Render_Single_Model
+        (M : Lui.Models.Object_Model);
+
+      -------------------------
+      -- Render_Single_Model --
+      -------------------------
+
+      procedure Render_Single_Model
+        (M : Lui.Models.Object_Model)
+      is
+      begin
+         M.Before_Render (Renderer);
+
+         for I in 1 .. M.Last_Render_Layer loop
+            if M.Render_Layer_Changed (I) then
+               Render_Model (M, Layers (I), I);
+            end if;
+         end loop;
+         M.After_Render (Renderer);
+
+      end Render_Single_Model;
+
    begin
       Model.Resize (Natural (Width), Natural (Height));
-      Model.Before_Render (Renderer);
 
-      for I in 1 .. Model.Last_Render_Layer loop
-         if Model.Render_Layer_Changed (I) then
-            Render_Model (Model, Layers (I), I);
-         end if;
-      end loop;
-      Model.After_Render (Renderer);
+      Render_Single_Model (Model);
+
+      Model.Scan_Inline_Models (Render_Single_Model'Access);
 
       if Model.Properties_Changed then
          for Gadget of Model.Gadgets loop
@@ -1246,6 +1269,18 @@ package body Lui.Gtk_UI is
          Cairo.Set_Source_Rgba (Renderer.Context, R, G, B, A);
       end if;
    end Set_Colour;
+
+   ------------------------------
+   -- Set_Current_Render_Layer --
+   ------------------------------
+
+   overriding procedure Set_Current_Render_Layer
+     (Renderer : in out Cairo_Renderer;
+      Layer    : Lui.Rendering.Render_Layer)
+   is
+   begin
+      Renderer.Current_Layer := Layer;
+   end Set_Current_Render_Layer;
 
    --------------------
    -- Set_Line_Width --

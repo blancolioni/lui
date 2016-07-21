@@ -23,6 +23,11 @@ package Lui.Rendering is
       return Render_Layer
       is abstract;
 
+   procedure Set_Current_Render_Layer
+     (Renderer : in out Root_Renderer;
+      Layer    : Render_Layer)
+   is abstract;
+
    function Image_Path
      (Renderer        : Root_Renderer'Class;
       Image_File_Name : String)

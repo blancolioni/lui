@@ -54,6 +54,11 @@ package body Lui.Models.Model_3D is
       return Lui.Rendering.Render_Layer
    is (Renderer.Current_Render_Layer);
 
+   overriding procedure Set_Current_Render_Layer
+     (Renderer : in out Object_Hit_Renderer;
+      Layer    : Lui.Rendering.Render_Layer)
+   is null;
+
    overriding procedure Draw_Circle
      (Renderer   : in out Object_Hit_Renderer;
       X, Y       : in     Integer;

@@ -132,6 +132,7 @@ package body Lui.Models is
          begin
             Child.Set_Location
               (Item.X + Child_X, Item.Y + Child_Y);
+            Renderer.Set_Current_Render_Layer (1);
             Renderer.Draw_Rectangle
               (Child_X, Child_Y, Child.Width, Child.Height,
                Child.Background, True);
@@ -139,7 +140,12 @@ package body Lui.Models is
               (Child_X, Child_Y, Child.Width, Child.Height,
                Child.Border, False);
             Child.Before_Render (Renderer);
-            Child.Render (Renderer);
+
+            for I in 1 .. Child.Last_Render_Layer loop
+               Renderer.Set_Current_Render_Layer (I);
+               Child.Render (Renderer);
+            end loop;
+
             Child.After_Render (Renderer);
             Renderer.Set_Origin (Origin.X, Origin.Y);
          end;
@@ -700,6 +706,21 @@ package body Lui.Models is
       Item.Z_Rotation := Item.Z_Rotation + Degrees;
       Item.Rotated := True;
    end Rotate_Z;
+
+   ------------------------
+   -- Scan_Inline_Models --
+   ------------------------
+
+   procedure Scan_Inline_Models
+     (Parent_Model : Root_Object_Model'Class;
+      Process      : not null access
+        procedure (Model : Object_Model))
+   is
+   begin
+      for Inline_Model of Parent_Model.Inline_Models loop
+         Process (Object_Model (Inline_Model.Model));
+      end loop;
+   end Scan_Inline_Models;
 
    --------------------
    -- Set_Background --
