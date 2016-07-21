@@ -1046,13 +1046,17 @@ package body Lui.Gtk_UI is
    is
       use type Gdk.Types.Gdk_Modifier_Type;
       pragma Unreferenced (W);
+      X : constant Integer := Integer (Event.Scroll.X);
+      Y : constant Integer := Integer (Event.Scroll.Y);
+      Target : constant Lui.Models.Object_Model :=
+                 Model.Model_At (X, Y);
    begin
       case Event.Scroll.Direction is
          when Gdk.Event.Scroll_Up | Gdk.Event.Scroll_Left =>
-            Model.Zoom
+            Target.Zoom
               (-1, (Event.Scroll.State and Gdk.Types.Control_Mask) /= 0);
          when Gdk.Event.Scroll_Down | Gdk.Event.Scroll_Right =>
-            Model.Zoom
+            Target.Zoom
               (1, (Event.Scroll.State and Gdk.Types.Control_Mask) /= 0);
          when Gdk.Event.Scroll_Smooth =>
             null;
