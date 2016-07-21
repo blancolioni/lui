@@ -473,6 +473,33 @@ package body Lui.Models is
       return List.Models (Index);
    end Model;
 
+   --------------
+   -- Model_At --
+   --------------
+
+   function Model_At
+     (Main_Model : not null access Root_Object_Model'Class;
+      X, Y       : Integer)
+      return Object_Model
+   is
+   begin
+      for Inline of Main_Model.Inline_Models loop
+         declare
+            M : constant Object_Model := Object_Model (Inline.Model);
+            X1 : constant Integer := M.X;
+            X2 : constant Integer := M.X + M.Width;
+            Y1 : constant Integer := M.Y;
+            Y2 : constant Integer := M.Y + M.Height;
+         begin
+            if X in X1 .. X2 and then Y in Y1 .. Y2 then
+               return M.Model_At (X - X1, Y - Y1);
+            end if;
+         end;
+      end loop;
+
+      return Object_Model (Main_Model);
+   end Model_At;
+
    ----------
    -- Move --
    ----------

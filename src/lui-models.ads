@@ -142,6 +142,11 @@ package Lui.Models is
      (Model : Root_Object_Model'Class)
       return Object_Model;
 
+   function Model_At
+     (Main_Model : not null access Root_Object_Model'Class;
+      X, Y       : Integer)
+      return Object_Model;
+
    procedure On_Model_Removed
      (Model : in out Root_Object_Model;
       Child : not null access Root_Object_Model'Class)
