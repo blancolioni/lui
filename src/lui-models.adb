@@ -54,6 +54,7 @@ package body Lui.Models is
         ((Anchor, W, H, Model));
       Model.Width := W;
       Model.Height := H;
+      Model.Parent := Object_Model (To_Model);
       To_Model.Queue_Render;
    end Add_Inline_Model;
 
@@ -387,7 +388,7 @@ package body Lui.Models is
          Rot_Z := Y * Sin_X_Rot + Rot_Z * Cos_X_Rot;
       end if;
 
-      Screen_Z := Rot_Z;
+      Screen_Z := Rot_Z - Model.Eye_Z;
    end Get_Screen_Coordinates;
 
    ------------
