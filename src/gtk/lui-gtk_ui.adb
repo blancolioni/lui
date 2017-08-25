@@ -3,6 +3,7 @@ with Ada.Containers.Hashed_Maps;
 with Ada.Containers.Vectors;
 with Ada.Numerics;
 with Ada.Strings.Unbounded.Hash;
+with Ada.Text_IO;
 
 with Glib;
 with Glib.Main;
@@ -31,6 +32,7 @@ with Cairo.Image_Surface;
 with Cairo.Png;
 
 with WL.Bitmap_IO;
+with WL.Images;
 
 with Lui.Colours;
 with Lui.Gadgets;
@@ -155,6 +157,11 @@ package body Lui.Gtk_UI is
      (Renderer      : in out Cairo_Renderer;
       Resource_Name : in     String;
       Bitmap        : in     WL.Bitmap_IO.Bitmap_Type);
+
+   overriding procedure Create_Image_Resource
+     (Renderer      : in out Cairo_Renderer;
+      Resource_Name : in     String;
+      Image         : WL.Images.Image_Type'Class);
 
    overriding function Have_Resource
      (Renderer      : Cairo_Renderer;
@@ -507,6 +514,85 @@ package body Lui.Gtk_UI is
       end;
 
    end Create_Bitmap_Resource;
+
+   ---------------------------
+   -- Create_Image_Resource --
+   ---------------------------
+
+   overriding procedure Create_Image_Resource
+     (Renderer      : in out Cairo_Renderer;
+      Resource_Name : in     String;
+      Image         : WL.Images.Image_Type'Class)
+   is
+      pragma Unreferenced (Renderer);
+      use Glib;
+      use type WL.Images.Layer_Count;
+      use type Cairo.Image_Surface.ARGB32_Array_Access;
+
+   begin
+      for Layer in 1 .. Image.Number_Of_Layers loop
+         declare
+            Width  : constant Natural := Natural (Image.Width (Layer));
+            Height : constant Natural := Natural (Image.Height (Layer));
+            Data   : constant Cairo.Image_Surface.ARGB32_Array_Access :=
+                       new Cairo.Image_Surface.ARGB32_Array
+                         (0 .. Width * Height - 1);
+            Layer_Name : constant String :=
+                           Resource_Name
+                           & (if Image.Number_Of_Layers = 1 then ""
+                              else Integer'Image (-(Integer (Layer))));
+         begin
+            Ada.Text_IO.Put_Line ("resource: " & Layer_Name
+                                  & Width'Img & " x" & Height'Img);
+
+            for X in 1 .. Image.Width (Layer) loop
+               for Y in 1 .. Image.Height (Layer) loop
+                  declare
+                     subtype Byte is Cairo.Image_Surface.Byte;
+                     Colour : constant WL.Images.Image_Color :=
+                                Image.Color (X, Y);
+                     ARGB32 : constant Cairo.Image_Surface.ARGB32_Data :=
+                                (Alpha => Byte (Colour.Alpha),
+                                 Blue  => Byte (Colour.Blue),
+                                 Green => Byte (Colour.Green),
+                                 Red   => Byte (Colour.Red));
+                     Index  : constant Natural :=
+                                Natural (X) - 1
+                                + (Height - Natural (Y)) * Width;
+                  begin
+                     Data (Index) := ARGB32;
+                  end;
+               end loop;
+            end loop;
+
+            declare
+               use Ada.Strings.Unbounded;
+               Image         : constant Cairo.Cairo_Surface :=
+                                 Cairo.Image_Surface.Create_For_Data_ARGB32
+                                   (Data   => Data,
+                                    Width  => Gint (Width),
+                                    Height => Gint (Height));
+               Resource_Key  : constant Unbounded_String :=
+                                 To_Unbounded_String (Layer_Name);
+            begin
+               if State.Image_Cache.Contains (Resource_Key) then
+                  declare
+                     Old_Image : constant Cairo.Cairo_Surface :=
+                                   State.Image_Cache (Resource_Key);
+                  begin
+                     Ada.Text_IO.Put_Line
+                       ("warning: replacing: " & Layer_Name);
+                     Cairo.Surface_Destroy (Old_Image);
+                     State.Image_Cache.Delete (Resource_Key);
+                  end;
+               end if;
+
+               State.Image_Cache.Insert (Resource_Key, Image);
+            end;
+         end;
+      end loop;
+
+   end Create_Image_Resource;
 
    -----------------
    -- Draw_Circle --

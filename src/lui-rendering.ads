@@ -1,4 +1,5 @@
 with WL.Bitmap_IO;
+with WL.Images;
 
 with Lui.Colours;
 
@@ -101,6 +102,12 @@ package Lui.Rendering is
      (Renderer      : in out Root_Renderer;
       Resource_Name : in     String;
       Bitmap        : in     WL.Bitmap_IO.Bitmap_Type)
+   is abstract;
+
+   procedure Create_Image_Resource
+     (Renderer      : in out Root_Renderer;
+      Resource_Name : in     String;
+      Image         : WL.Images.Image_Type'Class)
    is abstract;
 
    function Have_Resource
