@@ -542,9 +542,6 @@ package body Lui.Gtk_UI is
                            & (if Image.Number_Of_Layers = 1 then ""
                               else Integer'Image (-(Integer (Layer))));
          begin
-            Ada.Text_IO.Put_Line ("resource: " & Layer_Name
-                                  & Width'Img & " x" & Height'Img);
-
             for X in 1 .. Image.Width (Layer) loop
                for Y in 1 .. Image.Height (Layer) loop
                   declare
