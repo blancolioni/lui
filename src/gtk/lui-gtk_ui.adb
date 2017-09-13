@@ -732,6 +732,7 @@ package body Lui.Gtk_UI is
       use Glib;
    begin
       Set_Colour (Renderer, Colour);
+      Cairo.Set_Line_Cap (Renderer.Context, Cairo.Cairo_Line_Cap_Round);
       Cairo.Set_Line_Width (Renderer.Context, Gdouble (Line_Width));
       Cairo.Move_To (Renderer.Context,
                      Gdouble (X1 + Renderer.Origin_X),
