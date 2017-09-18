@@ -311,7 +311,7 @@ private
          First             : Boolean := True;
          Properties        : Property_Vectors.Vector;
          X, Y              : Integer := 0;
-         Width, Height     : Natural;
+         Width, Height     : Natural := 0;
          Eye_X, Eye_Y      : Real := 0.0;
          Eye_Z             : Real := 1.0;
          Rotated           : Boolean := False;
