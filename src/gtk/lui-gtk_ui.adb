@@ -1262,8 +1262,12 @@ package body Lui.Gtk_UI is
 
       end Render_Single_Model;
 
+      W : constant Natural := Natural (Width);
+      H : constant Natural := Natural (Height);
    begin
-      Model.Resize (Natural (Width), Natural (Height));
+      if W /= Model.Width or else H /= Model.Height then
+         Model.Resize (W, H);
+      end if;
 
       Render_Single_Model (Model);
 
