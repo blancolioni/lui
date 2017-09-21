@@ -911,8 +911,10 @@ package body Lui.Models is
 
    procedure Zoom (Item    : in out Root_Object_Model;
                    Z       : in     Integer;
+                   X, Y    : in     Integer;
                    Control : in Boolean)
    is
+      pragma Unreferenced (X, Y);
       pragma Unreferenced (Control);
    begin
       if Z < 0 then

@@ -75,6 +75,7 @@ package Lui.Models is
 
    procedure Zoom (Item    : in out Root_Object_Model;
                    Z       : in     Integer;
+                   X, Y    : in     Integer;
                    Control : in     Boolean);
 
    procedure Rotate_X (Item    : in out Root_Object_Model;

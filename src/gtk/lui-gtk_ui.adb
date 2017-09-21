@@ -811,6 +811,7 @@ package body Lui.Gtk_UI is
       if Filled then
          Cairo.Fill (Renderer.Context);
       else
+         Cairo.Set_Line_Width (Renderer.Context, 1.0);
          Cairo.Stroke (Renderer.Context);
       end if;
    end Draw_Rectangle;
@@ -1138,10 +1139,12 @@ package body Lui.Gtk_UI is
       case Event.Scroll.Direction is
          when Gdk.Event.Scroll_Up | Gdk.Event.Scroll_Left =>
             Target.Zoom
-              (-1, (Event.Scroll.State and Gdk.Types.Control_Mask) /= 0);
+              (-1, X, Y,
+               (Event.Scroll.State and Gdk.Types.Control_Mask) /= 0);
          when Gdk.Event.Scroll_Down | Gdk.Event.Scroll_Right =>
             Target.Zoom
-              (1, (Event.Scroll.State and Gdk.Types.Control_Mask) /= 0);
+              (1, X, Y,
+               (Event.Scroll.State and Gdk.Types.Control_Mask) /= 0);
          when Gdk.Event.Scroll_Smooth =>
             null;
       end case;
