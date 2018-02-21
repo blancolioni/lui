@@ -11,6 +11,36 @@ package body Lui.Handles is
       return Local_Current_UI;
    end Current_UI;
 
+   ---------------
+   -- Pop_Model --
+   ---------------
+
+   procedure Pop_Model
+     (Handle : in out Root_UI_Handle'Class;
+      Model  : out Lui.Models.Object_Model)
+   is
+   begin
+      if Handle.Stack.Is_Empty then
+         raise Constraint_Error with
+           "Lui.Handles.Pop_Model: model stack was empty";
+      end if;
+
+      Model := Handle.Stack.Last_Element;
+      Handle.Stack.Delete_Last;
+   end Pop_Model;
+
+   ----------------
+   -- Push_Model --
+   ----------------
+
+   procedure Push_Model
+     (Handle : in out Root_UI_Handle'Class;
+      Model  : Lui.Models.Object_Model)
+   is
+   begin
+      Handle.Stack.Append (Model);
+   end Push_Model;
+
    -----------------
    -- Set_Current --
    -----------------

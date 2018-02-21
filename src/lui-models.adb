@@ -1,6 +1,7 @@
 with Ada.Strings.Fixed;
 
 with Lui.Elementary_Functions;
+with Lui.Handles;
 
 package body Lui.Models is
 
@@ -565,6 +566,20 @@ package body Lui.Models is
       return Model.Parent;
    end Parent_Model;
 
+   ---------------
+   -- Pop_Model --
+   ---------------
+
+   procedure Pop_Model
+     (Current_Model : Root_Object_Model'Class)
+   is
+      pragma Unreferenced (Current_Model);
+      Model : Object_Model;
+   begin
+      Lui.Handles.Current_UI.Pop_Model (Model);
+      Lui.Handles.Current_UI.Show_Model (Model);
+   end Pop_Model;
+
    ------------------------
    -- Properties_Changed --
    ------------------------
@@ -609,6 +624,19 @@ package body Lui.Models is
    begin
       return Item.Properties (Index).Value.all;
    end Property_Value;
+
+   ----------------
+   -- Push_Model --
+   ----------------
+
+   procedure Push_Model
+     (Model     : not null access Root_Object_Model'Class;
+      New_Model : not null access Root_Object_Model'Class)
+   is
+   begin
+      Lui.Handles.Current_UI.Push_Model (Object_Model (Model));
+      Lui.Handles.Current_UI.Show_Model (Object_Model (New_Model));
+   end Push_Model;
 
    ------------------
    -- Queue_Render --
@@ -811,6 +839,17 @@ package body Lui.Models is
    begin
       Item.Name := Ada.Strings.Unbounded.To_Unbounded_String (Name);
    end Set_Name;
+
+   ----------
+   -- Show --
+   ----------
+
+   procedure Show
+     (Model : not null access Root_Object_Model'Class)
+   is
+   begin
+      Lui.Handles.Current_UI.Show_Model (Object_Model (Model));
+   end Show;
 
    ----------------------
    -- Start_Transition --

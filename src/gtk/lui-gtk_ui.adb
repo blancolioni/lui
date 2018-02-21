@@ -1,3 +1,4 @@
+with Ada.Characters.Latin_1;
 with Ada.Containers.Doubly_Linked_Lists;
 with Ada.Containers.Hashed_Maps;
 with Ada.Containers.Vectors;
@@ -334,7 +335,6 @@ package body Lui.Gtk_UI is
                      Model : Lui.Models.Object_Model)
    is
       Page : Gtk.Drawing_Area.Gtk_Drawing_Area;
-      Label : Gtk.Label.Gtk_Label;
    begin
       Lui.Models.Active_Model_List (List).Append (Model);
 
@@ -405,9 +405,7 @@ package body Lui.Gtk_UI is
         Model);
 
       Page.Show_All;
-
-      Gtk.Label.Gtk_New (Label, Model.Name);
-      Label.Show;
+      Page.Ref;
 
       State.Main.Append_Feature (UI_Model, Model, Top => Page);
 
@@ -449,6 +447,8 @@ package body Lui.Gtk_UI is
         (Slot.Model, Slot.Layers,
          Glib.Gdouble (Slot.Width),
          Glib.Gdouble (Slot.Height));
+
+      Slot.Widget.Grab_Focus;
 
       return True;
    end Configure_Model_Handler;
@@ -985,6 +985,10 @@ package body Lui.Gtk_UI is
       use Gdk.Types.Keysyms;
       DX, DY  : Integer := 0;
    begin
+      Ada.Text_IO.Put_Line
+        (Gdk.Types.Gdk_Key_Type'Image
+           (Gdk.Event.Get_Key_Val (Event)));
+
       case Gdk.Event.Get_Key_Val (Event) is
          when GDK_Left =>
             DX := -1;
@@ -994,6 +998,8 @@ package body Lui.Gtk_UI is
             DY := -1;
          when GDK_Down =>
             DY := 1;
+         when GDK_Escape =>
+            Model.On_Key_Press (Ada.Characters.Latin_1.ESC);
          when others =>
             null;
       end case;
@@ -1316,6 +1322,7 @@ package body Lui.Gtk_UI is
    procedure Select_Model (Model : Lui.Models.Object_Model) is
       use type Lui.Models.Object_Model;
       Found : Boolean := False;
+      Draw  : Gtk.Drawing_Area.Gtk_Drawing_Area;
    begin
       if Model = State.Active then
          return;
@@ -1325,8 +1332,9 @@ package body Lui.Gtk_UI is
 
       for I in 1 .. State.Models.Count loop
          if State.Models.Model (I) = Model then
+            Draw := State.Models.Slots.Element (I).Widget;
             State.Main.Select_Feature
-              (UI_Model, Model, State.Models.Slots.Element (I).Widget);
+              (UI_Model, Model, Draw);
             Found := True;
             exit;
          end if;
@@ -1334,6 +1342,7 @@ package body Lui.Gtk_UI is
 
       if not Found then
          State.Models.Append (Model);
+         Draw := State.Models.Slots.Last_Element.Widget;
       end if;
 
       State.Main.Clear_Features (UI_Table);
@@ -1571,6 +1580,7 @@ package body Lui.Gtk_UI is
           (Func     => Timeout_Handler'Access);
       State.Main := Main;
       State.Models.Append (Top);
+      Lui.Handles.Set_Current (State);
    end Start;
 
    ---------------------

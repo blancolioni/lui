@@ -102,8 +102,13 @@ package Lui.Models is
                        return Object_Model
    is (null);
 
-   procedure Select_XY (Item : in out Root_Object_Model;
+   procedure Select_XY (Item : not null access Root_Object_Model;
                         X, Y : Natural)
+   is null;
+
+   procedure On_Key_Press
+     (Item : in out Root_Object_Model;
+      Key  : Character)
    is null;
 
    type Model_Anchor is
@@ -176,6 +181,16 @@ package Lui.Models is
 
    procedure Clear_Changed
      (Model : in out Root_Object_Model);
+
+   procedure Show
+     (Model : not null access Root_Object_Model'Class);
+
+   procedure Push_Model
+     (Model     : not null access Root_Object_Model'Class;
+      New_Model : not null access Root_Object_Model'Class);
+
+   procedure Pop_Model
+     (Current_Model : Root_Object_Model'Class);
 
    function Active_Transition
      (Model : Root_Object_Model)
