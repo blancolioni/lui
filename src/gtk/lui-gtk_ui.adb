@@ -982,42 +982,15 @@ package body Lui.Gtk_UI is
       Model : Lui.Models.Object_Model)
       return Boolean
    is
-      use Gdk.Types.Keysyms;
-      DX, DY  : Integer := 0;
+      pragma Unreferenced (W);
+      use type Gdk.Types.Gdk_Key_Type;
+      Code : constant Gdk.Types.Gdk_Key_Type :=
+               Gdk.Event.Get_Key_Val (Event);
    begin
-      Ada.Text_IO.Put_Line
-        (Gdk.Types.Gdk_Key_Type'Image
-           (Gdk.Event.Get_Key_Val (Event)));
-
-      case Gdk.Event.Get_Key_Val (Event) is
-         when GDK_Left =>
-            DX := -1;
-         when GDK_Right =>
-            DX := 1;
-         when GDK_Up =>
-            DY := -1;
-         when GDK_Down =>
-            DY := 1;
-         when GDK_Escape =>
-            Model.On_Key_Press (Ada.Characters.Latin_1.ESC);
-         when others =>
-            null;
-      end case;
-
-      if DX /= 0 or else DY /= 0 then
-         Model.On_Drag (DX, DY);
-         W.Queue_Draw;
---           case Model.Get_Drag_Behaviour is
---              when Lui.Models.Rotation =>
---                 --  passing DY to rotate x and DX to rotate y is not
---                 --  an error, but a consequence of the fact that it
---                 --  is a more natural rotation from the user's perspective
---                 Model.Rotate_X (Real (DY));
---                 Model.Rotate_Y (Real (DX));
---              when Lui.Models.Translation =>
---                 Model.Move (DX, DY);
---           end case;
---           Updated := True;
+      if Code in 32 .. 127 then
+         Model.On_Key_Press (Character'Val (Code));
+      elsif Code = Gdk.Types.Keysyms.GDK_Escape then
+         Model.On_Key_Press (Ada.Characters.Latin_1.ESC);
       end if;
       return True;
    end Model_Key_Press_Handler;
