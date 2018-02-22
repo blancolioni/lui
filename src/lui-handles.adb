@@ -38,6 +38,7 @@ package body Lui.Handles is
       Model  : Lui.Models.Object_Model)
    is
    begin
+      Model.Deactivate;
       Handle.Stack.Append (Model);
    end Push_Model;
 

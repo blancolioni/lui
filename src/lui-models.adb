@@ -5,6 +5,11 @@ with Lui.Handles;
 
 package body Lui.Models is
 
+   procedure Activate (Model : in out Root_Object_Model) is
+   begin
+      Model.Active := True;
+   end Activate;
+
    -----------------------
    -- Active_Transition --
    -----------------------
@@ -249,6 +254,15 @@ package body Lui.Models is
    begin
       return List.Models.Last_Index;
    end Count;
+
+   ----------------
+   -- Deactivate --
+   ----------------
+
+   procedure Deactivate (Model : in out Root_Object_Model) is
+   begin
+      Model.Active := False;
+   end Deactivate;
 
    -----------------------------
    -- Drag_Rotation_Behaviour --

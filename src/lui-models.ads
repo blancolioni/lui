@@ -30,6 +30,10 @@ package Lui.Models is
       Gadgets           : Lui.Gadgets.Array_Of_Gadgets :=
         Lui.Gadgets.No_Gadgets);
 
+   function Is_Active (Model : Root_Object_Model) return Boolean;
+   procedure Activate (Model : in out Root_Object_Model);
+   procedure Deactivate (Model : in out Root_Object_Model);
+
    function Last_Render_Layer
      (Model : Root_Object_Model'Class)
       return Lui.Rendering.Render_Layer;
@@ -325,6 +329,7 @@ private
          Parent            : Object_Model;
          Last_Render_Layer : Lui.Rendering.Render_Layer;
          First             : Boolean := True;
+         Active            : Boolean := False;
          Properties        : Property_Vectors.Vector;
          X, Y              : Integer := 0;
          Width, Height     : Natural := 0;
@@ -359,6 +364,9 @@ private
          Target_Z          : Real;
          Progress          : Unit_Real;
       end record;
+
+   function Is_Active (Model : Root_Object_Model) return Boolean
+   is (Model.Active);
 
    package Object_Model_Vectors is
      new Ada.Containers.Vectors (Positive, Object_Model);
