@@ -2,6 +2,7 @@ with Ada.Characters.Latin_1;
 with Ada.Containers.Doubly_Linked_Lists;
 with Ada.Containers.Hashed_Maps;
 with Ada.Containers.Vectors;
+with Ada.Directories;
 with Ada.Numerics;
 with Ada.Strings.Unbounded.Hash;
 with Ada.Text_IO;
@@ -688,6 +689,11 @@ package body Lui.Gtk_UI is
             Path : constant String :=
                      Renderer.Image_Path (Resource & ".png");
          begin
+            if not Ada.Directories.Exists (Path) then
+               Ada.Text_IO.Put_Line
+                 (Ada.Text_IO.Standard_Error,
+                  "file not found: " & Path);
+            end if;
             Base_Image := Cairo.Png.Create_From_Png (Path);
             State.Image_Cache.Insert (Base_Image_Key, Base_Image);
          end;
@@ -1573,14 +1579,14 @@ package body Lui.Gtk_UI is
                         State.Models.Slots.Element (I);
          begin
             if Slot.Model.Is_Active then
-            Slot.Model.Idle_Update (Updated);
-            if Slot.Model.Queued_Render or else Updated then
-               Render_Model_Layers
-                 (Slot.Model, Slot.Layers,
-                  Glib.Gdouble (Slot.Width),
-                  Glib.Gdouble (Slot.Height));
-               Slot.Widget.Queue_Draw;
-            end if;
+               Slot.Model.Idle_Update (Updated);
+               if Slot.Model.Queued_Render or else Updated then
+                  Render_Model_Layers
+                    (Slot.Model, Slot.Layers,
+                     Glib.Gdouble (Slot.Width),
+                     Glib.Gdouble (Slot.Height));
+                  Slot.Widget.Queue_Draw;
+               end if;
             end if;
          end;
       end loop;
