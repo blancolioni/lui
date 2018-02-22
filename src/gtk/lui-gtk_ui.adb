@@ -22,6 +22,7 @@ with Gtk.Enums;
 with Gtk.Handlers;
 with Gtk.Label;
 with Gtk.Scrolled_Window;
+with Gtk.Tooltip;
 with Gtk.Tree_Model;
 with Gtk.Tree_Selection;
 with Gtk.Tree_Store;
@@ -208,15 +209,15 @@ package body Lui.Gtk_UI is
 
    type Root_UI_State is new Lui.Handles.Root_UI_Handle with
       record
-         Main         : Lui_Gtk;
-         Models       : Gtk_Active_Model_List;
-         Tables       : Model_Table_Lists.List;
-         Image_Cache  : Image_Maps.Map;
-         Dragging     : Boolean := False;
-         Last_Drag_X  : Integer := Integer'First;
-         Last_Drag_Y  : Integer := Integer'First;
-         Active       : Lui.Models.Object_Model := null;
-         Timeout_Id : Glib.Main.G_Source_Id;
+         Main               : Lui_Gtk;
+         Models             : Gtk_Active_Model_List;
+         Tables             : Model_Table_Lists.List;
+         Image_Cache        : Image_Maps.Map;
+         Dragging           : Boolean := False;
+         Last_Drag_X        : Integer := Integer'First;
+         Last_Drag_Y        : Integer := Integer'First;
+         Active             : Lui.Models.Object_Model := null;
+         Timeout_Id         : Glib.Main.G_Source_Id;
       end record;
 
    overriding procedure Show_Model
@@ -272,6 +273,14 @@ package body Lui.Gtk_UI is
      (W : access Gtk.Drawing_Area.Gtk_Drawing_Area_Record'Class;
       Event : Gdk.Event.Gdk_Event;
       Model : Lui.Models.Object_Model)
+      return Boolean;
+
+   function Model_Query_Tooltip_Handler
+     (Self          : access Gtk.Widget.Gtk_Widget_Record'Class;
+      X             : Glib.Gint;
+      Y             : Glib.Gint;
+      Keyboard_Mode : Boolean;
+      Tooltip       : not null access Glib.Object.GObject_Record'Class)
       return Boolean;
 
    function Model_Zoom_Handler
@@ -356,6 +365,7 @@ package body Lui.Gtk_UI is
       end;
 
       Page.Set_Can_Focus (True);
+      Page.Set_Has_Tooltip (True);
 
       declare
          Slot : constant Model_Object_Access :=
@@ -402,7 +412,15 @@ package body Lui.Gtk_UI is
         (Page, "scroll-event",
          Drawing_Area_Model_Callback.To_Marshaller
            (Model_Zoom_Handler'Access),
-        Model);
+         Model);
+
+--        Drawing_Area_Model_Callback.Connect
+--          (Page, Gtk.Widget.Signal_Query_Tooltip,
+--           Drawing_Area_Model_Callback.To_Marshaller
+--             (Model_Query_Tooltip_Handler'Access),
+--           Model);
+
+      Page.On_Query_Tooltip (Model_Query_Tooltip_Handler'Access);
 
       Page.Show_All;
       Page.Ref;
@@ -1006,32 +1024,15 @@ package body Lui.Gtk_UI is
       return Boolean
    is
       pragma Unreferenced (W);
+      use Glib.Main;
       X : constant Integer := Integer (Event.Motion.X);
       Y : constant Integer := Integer (Event.Motion.Y);
    begin
       if State.Dragging then
          Model.On_Drag
            (X - State.Last_Drag_X, Y - State.Last_Drag_Y);
-
---           case Model.Get_Drag_Behaviour is
---              when Lui.Models.Rotation =>
---                 Model.Rotate_Y ((Real (State.Last_Drag_X) - Real (X))
---                                 * 360.0 / Real (W.Get_Allocated_Width));
---                 Model.Rotate_X ((Real (Y) - Real (State.Last_Drag_Y))
---                                 * 360.0 / Real (W.Get_Allocated_Height));
---              when Lui.Models.Translation =>
---                 Model.Move (X - State.Last_Drag_X, Y - State.Last_Drag_Y);
---           end case;
-         Model.Queue_Render;
          State.Last_Drag_X := X;
          State.Last_Drag_Y := Y;
-      else
-         declare
-            Message : constant String :=
-                        Model.Tooltip (X, Y);
-         begin
-            State.Main.Status_Message (Message);
-         end;
       end if;
 
       return True;
@@ -1097,6 +1098,40 @@ package body Lui.Gtk_UI is
          return False;
       end if;
    end Model_Mouse_Button_Release_Handler;
+
+--     function Model_Query_Tooltip_Handler
+--       (W     : access Gtk.Drawing_Area.Gtk_Drawing_Area_Record'Class;
+--        Event : Gdk.Event.Gdk_Event;
+--        Model : Lui.Models.Object_Model)
+--        return Boolean
+--     is
+--        Tooltip : constant Gtk.Tooltip.Gtk_Tooltip :=
+--                    Event.Proximity.
+--                    Gdk.Event.Gdk_Event_Proximity (Event
+
+   ---------------------------------
+   -- Model_Query_Tooltip_Handler --
+   ---------------------------------
+
+   function Model_Query_Tooltip_Handler
+     (Self          : access Gtk.Widget.Gtk_Widget_Record'Class;
+      X             : Glib.Gint;
+      Y             : Glib.Gint;
+      Keyboard_Mode : Boolean;
+      Tooltip       : not null access Glib.Object.GObject_Record'Class)
+      return Boolean
+   is
+      pragma Unreferenced (Self, Keyboard_Mode);
+      Message : constant String :=
+                  State.Active.Tooltip (Integer (X), Integer (Y));
+   begin
+      if Message /= "" then
+         Gtk.Tooltip.Gtk_Tooltip (Tooltip).Set_Text (Message);
+         return True;
+      else
+         return False;
+      end if;
+   end Model_Query_Tooltip_Handler;
 
    ------------------------
    -- Model_Zoom_Handler --
@@ -1552,6 +1587,7 @@ package body Lui.Gtk_UI is
         Glib.Main.Idle_Add
           (Func     => Timeout_Handler'Access);
       State.Main := Main;
+      State.Active := Top;
       State.Models.Append (Top);
       Lui.Handles.Set_Current (State);
    end Start;

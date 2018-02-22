@@ -25,11 +25,6 @@ package Lui.Gtk_UI is
       Feature : Lui_UI_Feature)
    is abstract;
 
-   procedure Status_Message
-     (To      : in out Lui_Gtk_Interface;
-      Message : String)
-   is abstract;
-
    procedure On_Idle
      (Item : in out Lui_Gtk_Interface)
    is null;
