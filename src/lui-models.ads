@@ -131,6 +131,11 @@ package Lui.Models is
       Attach_Top    : Boolean := False;
       Attach_Bottom : Boolean := False);
 
+   procedure Add_Inline_Model
+     (To_Model : not null access Root_Object_Model'Class;
+      Layout   : Layout_Rectangle;
+      Model    : not null access Root_Object_Model'Class);
+
    procedure Remove_Inline_Model
      (From_Model : in out Root_Object_Model'Class;
       Model      : not null access Root_Object_Model'Class);
@@ -318,8 +323,9 @@ private
 
    type Inline_Model_Entry is
       record
+         Static : Boolean;
          Anchor : Model_Anchor;
-         W, H   : Positive;
+         Layout : Layout_Rectangle;
          Model  : access Root_Object_Model'Class;
       end record;
 

@@ -57,9 +57,29 @@ package body Lui.Models is
    is
    begin
       To_Model.Inline_Models.Append
-        ((Anchor, W, H, Model));
+        ((False, Anchor, (0, 0, W, H), Model));
       Model.Layout.Width := W;
       Model.Layout.Height := H;
+      Model.Parent := Object_Model (To_Model);
+      To_Model.Queue_Render;
+   end Add_Inline_Model;
+
+   ----------------------
+   -- Add_Inline_Model --
+   ----------------------
+
+   procedure Add_Inline_Model
+     (To_Model : not null access Root_Object_Model'Class;
+      Layout   : Layout_Rectangle;
+      Model    : not null access Root_Object_Model'Class)
+   is
+   begin
+      To_Model.Inline_Models.Append
+        ((Static => False,
+          Anchor => (others => False),
+          Layout => Layout,
+          Model  => Model));
+      Model.Layout := Layout;
       Model.Parent := Object_Model (To_Model);
       To_Model.Queue_Render;
    end Add_Inline_Model;
@@ -135,7 +155,9 @@ package body Lui.Models is
                         Get_Start (Item.Height, Child.Height,
                                    Anchor.Top, Anchor.Bottom);
             Rec     : constant Layout_Rectangle :=
-                        (Child_X, Child_Y, Child.Width, Child.Height);
+                        (if Inline_Model.Static
+                         then Inline_Model.Layout
+                         else (Child_X, Child_Y, Child.Width, Child.Height));
          begin
             Renderer.Set_Color (Child.Background);
             Renderer.Rectangle (Rec, True);
