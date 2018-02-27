@@ -39,16 +39,16 @@ package Lui.Models.Containers is
 
    procedure Set_Child_Border_Style
      (Model  : in out Root_Container_Model'Class;
-      Colour : Lui.Colours.Colour_Type;
+      Color : Lui.Colors.Color_Type;
       Width  : Natural);
 
    function Child_Border_Width
      (Model : Root_Container_Model'Class)
       return Natural;
 
-   function Child_Border_Colour
+   function Child_Border_Color
      (Model : Root_Container_Model'Class)
-      return Lui.Colours.Colour_Type;
+      return Lui.Colors.Color_Type;
 
 private
 
@@ -58,8 +58,8 @@ private
    type Root_Container_Model is abstract new Root_Object_Model with
       record
          Children            : Object_Model_Lists.List;
-         Child_Border_Colour : Lui.Colours.Colour_Type :=
-                                 Lui.Colours.Black;
+         Child_Border_Color : Lui.Colors.Color_Type :=
+                                 Lui.Colors.Black;
          Child_Border_Width  : Natural := 0;
       end record;
 

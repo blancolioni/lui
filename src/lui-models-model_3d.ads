@@ -2,7 +2,7 @@ with Ada.Numerics.Long_Real_Arrays;
 
 private with Ada.Containers.Doubly_Linked_Lists;
 
-with Lui.Colours;                      use Lui.Colours;
+with Lui.Colors;                      use Lui.Colors;
 --  with Lui.Rendering;                    use Lui.Rendering;
 
 package Lui.Models.Model_3D is
@@ -77,7 +77,7 @@ package Lui.Models.Model_3D is
 
    procedure Begin_Surface
      (Model  : in out Root_3D_Model'Class;
-      Colour : Lui.Colours.Colour_Type);
+      Color : Lui.Colors.Color_Type);
 
    procedure Vertex
      (Model : in out Root_3D_Model'Class;
@@ -92,19 +92,19 @@ package Lui.Models.Model_3D is
 
    procedure Sphere
      (Model      : in out Root_3D_Model'Class;
-      Colour     : in     Colour_Type;
+      Color     : in     Color_Type;
       RX, RY, RZ : in     Real;
       Detail     : in     Positive);
 
    procedure Icosohedral_Sphere
      (Model      : in out Root_3D_Model'Class;
-      Colour     : in     Colour_Type;
+      Color     : in     Color_Type;
       RX, RY, RZ : in     Real;
       Detail     : in     Positive);
 
    procedure Cylinder
      (Model      : in out Root_3D_Model'Class;
-      Colour     : in     Colour_Type;
+      Color     : in     Color_Type;
       X, Y, Z    : in     Real;
       RX, RY     : in     Real;
       DZ         : in     Real;
@@ -114,7 +114,7 @@ package Lui.Models.Model_3D is
 
    procedure Cone
      (Model      : in out Root_3D_Model'Class;
-      Colour     : in     Colour_Type;
+      Color     : in     Color_Type;
       X, Y, Z    : in     Real;
       RX, RY     : in     Real;
       DZ         : in     Real;
@@ -125,7 +125,7 @@ package Lui.Models.Model_3D is
 
    procedure Conical_Frustum
      (Model      : in out Root_3D_Model'Class;
-      Colour     : in     Colour_Type;
+      Color     : in     Color_Type;
       X, Y, Z    : in     Real;
       RX1, RY1   : in     Real;
       RX2, RY2   : in     Real;
@@ -145,7 +145,7 @@ private
 
    type Surface is
       record
-         Colour : Colour_Type;
+         Color : Color_Type;
          Vs     : Vertex_Vectors.Vector;
       end record;
 
@@ -164,7 +164,7 @@ private
          Matrices            : Matrix_Stacks.List;
          Surfaces            : Surface_Vectors.Vector;
          Current_Object_Id   : Natural := 0;
-         Object_Id_Colour    : Lui.Colours.Colour_Type;
+         Object_Id_Color    : Lui.Colors.Color_Type;
          Current_Render_Mode : Render_Mode := Normal;
       end record;
 

@@ -1,13 +1,13 @@
-package body Lui.Colours.Config is
+package body Lui.Colors.Config is
 
    ----------------------
-   -- Configure_Colour --
+   -- Configure_Color --
    ----------------------
 
-   function Configure_Colour
+   function Configure_Color
      (Config     : Tropos.Configuration;
       Child_Name : String := "")
-      return Colour_Type
+      return Color_Type
    is
       Child : constant Tropos.Configuration :=
                 (if Child_Name = ""
@@ -23,8 +23,8 @@ package body Lui.Colours.Config is
       if R <= 1.0 and then G <= 1.0 and then B <= 1.0 then
          return (Unit_Real (R), Unit_Real (G), Unit_Real (B), 1.0);
       else
-         return To_Colour (Colour_Byte (R), Colour_Byte (G), Colour_Byte (B));
+         return To_Color (Color_Byte (R), Color_Byte (G), Color_Byte (B));
       end if;
-   end Configure_Colour;
+   end Configure_Color;
 
-end Lui.Colours.Config;
+end Lui.Colors.Config;

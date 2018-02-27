@@ -15,7 +15,7 @@ package Lui.Models.Charts is
    overriding procedure Initialise
      (Chart             : in out Chart_Model;
       Name              : in     String;
-      Last_Render_Layer : Lui.Rendering.Render_Layer := 1;
+      Last_Render_Layer : Render_Layer := 1;
       Tables            : Lui.Tables.Array_Of_Model_Tables :=
         Lui.Tables.No_Tables;
       Gadgets           : Lui.Gadgets.Array_Of_Gadgets :=
@@ -57,8 +57,8 @@ package Lui.Models.Charts is
 
    overriding function Background
      (Item : Chart_Model)
-      return Lui.Colours.Colour_Type
-   is (Lui.Colours.White);
+      return Lui.Colors.Color_Type
+   is (Lui.Colors.White);
 
 private
 

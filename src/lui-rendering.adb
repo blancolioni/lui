@@ -19,6 +19,32 @@ package body Lui.Rendering is
         & "/" & Image_File_Name;
    end Image_Path;
 
+   ---------------
+   -- Rectangle --
+   ---------------
+
+   procedure Rectangle
+     (Renderer : in out Root_Renderer'Class;
+      X, Y     : in     Integer;
+      W, H     : in     Natural;
+      Filled   : in     Boolean)
+   is
+   begin
+      Renderer.Rectangle ((X, Y, W, H), Filled);
+   end Rectangle;
+
+   ---------------
+   -- Set_Color --
+   ---------------
+
+   procedure Set_Color
+     (Renderer : in out Root_Renderer'Class;
+      R, G, B  : Unit_Real)
+   is
+   begin
+      Renderer.Set_Color ((R, G, B, 1.0));
+   end Set_Color;
+
    --------------------
    -- Set_Image_Path --
    --------------------

@@ -58,8 +58,8 @@ package body Lui.Models is
    begin
       To_Model.Inline_Models.Append
         ((Anchor, W, H, Model));
-      Model.Width := W;
-      Model.Height := H;
+      Model.Layout.Width := W;
+      Model.Layout.Height := H;
       Model.Parent := Object_Model (To_Model);
       To_Model.Queue_Render;
    end Add_Inline_Model;
@@ -134,27 +134,28 @@ package body Lui.Models is
             Child_Y : constant Integer :=
                         Get_Start (Item.Height, Child.Height,
                                    Anchor.Top, Anchor.Bottom);
-            Origin  : constant Lui.Rendering.Buffer_Point_Type :=
-                        Renderer.Get_Origin;
+            Rec     : constant Layout_Rectangle :=
+                        (Child_X, Child_Y, Child.Width, Child.Height);
          begin
-            Child.Set_Location
-              (Item.X + Child_X, Item.Y + Child_Y);
-            Renderer.Set_Current_Render_Layer (1);
-            Renderer.Draw_Rectangle
-              (Child_X, Child_Y, Child.Width, Child.Height,
-               Child.Background, True);
-            Renderer.Draw_Rectangle
-              (Child_X, Child_Y, Child.Width, Child.Height,
-               Child.Border, False);
+            Renderer.Set_Color (Child.Background);
+            Renderer.Rectangle (Rec, True);
+
+            Renderer.Set_Color (Child.Border);
+            Renderer.Rectangle (Rec, False);
+
+            Renderer.Push_Viewport
+              ((Child_X, Child_Y, Child.Width, Child.Height));
+
             Child.Before_Render (Renderer);
 
             for I in 1 .. Child.Last_Render_Layer loop
-               Renderer.Set_Current_Render_Layer (I);
-               Child.Render (Renderer);
+               Child.Render (Renderer, I);
             end loop;
 
             Child.After_Render (Renderer);
-            Renderer.Set_Origin (Origin.X, Origin.Y);
+
+            Renderer.Pop_Viewport;
+
          end;
       end loop;
    end After_Render;
@@ -177,7 +178,7 @@ package body Lui.Models is
 
    function Background
      (Item : Root_Object_Model)
-      return Lui.Colours.Colour_Type
+      return Lui.Colors.Color_Type
    is
    begin
       return Item.Background;
@@ -191,9 +192,9 @@ package body Lui.Models is
      (Item     : in out Root_Object_Model;
       Renderer : in out Lui.Rendering.Root_Renderer'Class)
    is
+      pragma Unreferenced (Renderer);
    begin
       Item.Queued_Render := False;
-      Renderer.Set_Origin (Item.X, Item.Y);
       if Item.Active_Transition then
          declare
             use Ada.Calendar;
@@ -226,7 +227,7 @@ package body Lui.Models is
 
    function Border
      (Item : Root_Object_Model)
-      return Lui.Colours.Colour_Type
+      return Lui.Colors.Color_Type
    is
    begin
       return Item.Border;
@@ -242,6 +243,18 @@ package body Lui.Models is
    begin
       Model.First := False;
    end Clear_Changed;
+
+   --------------------------------
+   -- Clear_Render_Layer_Changed --
+   --------------------------------
+
+   procedure Clear_Render_Layer_Changed
+     (Model : in out Root_Object_Model'Class;
+      Layer : Render_Layer)
+   is
+   begin
+      Model.Layer_Changed (Layer) := False;
+   end Clear_Render_Layer_Changed;
 
    -----------
    -- Count --
@@ -338,8 +351,8 @@ package body Lui.Models is
       X, Y : out Integer)
    is
    begin
-      X := Item.X;
-      Y := Item.Y;
+      X := Item.Layout.X;
+      Y := Item.Layout.Y;
    end Get_Location;
 
    ------------------
@@ -412,33 +425,8 @@ package body Lui.Models is
 
    function Height (Item : Root_Object_Model) return Natural is
    begin
-      return Item.Height;
+      return Item.Layout.Height;
    end Height;
-
-   -----------------
-   -- Idle_Update --
-   -----------------
-
-   procedure Idle_Update
-     (Model   : in out Root_Object_Model'Class;
-      Updated : out Boolean)
-   is
-   begin
-      Updated := Model.Handle_Update;
-      Updated := Updated or else Model.Queued_Render;
-
-      for Inline_Model of Model.Inline_Models loop
-         declare
-            Model_Updated : constant Boolean :=
-                              Inline_Model.Model.Handle_Update;
-         begin
-            Updated := Updated or else Model_Updated;
-         end;
-      end loop;
-
-      Updated := Updated or else Model.Active_Transition;
-
-   end Idle_Update;
 
    ----------------
    -- Initialise --
@@ -447,7 +435,7 @@ package body Lui.Models is
    procedure Initialise
      (Item              : in out Root_Object_Model;
       Name              : in     String;
-      Last_Render_Layer : Lui.Rendering.Render_Layer := 1;
+      Last_Render_Layer : Render_Layer := 1;
       Tables            : Lui.Tables.Array_Of_Model_Tables :=
         Lui.Tables.No_Tables;
       Gadgets           : Lui.Gadgets.Array_Of_Gadgets :=
@@ -456,7 +444,7 @@ package body Lui.Models is
    begin
       Item.Name := Ada.Strings.Unbounded.To_Unbounded_String (Name);
       Item.Last_Render_Layer := Last_Render_Layer;
-      Item.Background := Lui.Colours.Black;
+      Item.Background := Lui.Colors.Black;
       Item.Properties.Clear;
       Item.Tables :=
         new Lui.Tables.Array_Of_Model_Tables'(Tables);
@@ -470,7 +458,7 @@ package body Lui.Models is
 
    function Last_Render_Layer
      (Model : Root_Object_Model'Class)
-      return Lui.Rendering.Render_Layer
+      return Render_Layer
    is
    begin
       return Model.Last_Render_Layer;
@@ -502,13 +490,9 @@ package body Lui.Models is
       for Inline of Main_Model.Inline_Models loop
          declare
             M : constant Object_Model := Object_Model (Inline.Model);
-            X1 : constant Integer := M.X;
-            X2 : constant Integer := M.X + M.Width;
-            Y1 : constant Integer := M.Y;
-            Y2 : constant Integer := M.Y + M.Height;
          begin
-            if X in X1 .. X2 and then Y in Y1 .. Y2 then
-               return M.Model_At (X - X1, Y - Y1);
+            if Contains (M.Layout, X, Y) then
+               return M.Model_At (X - M.Layout.X, Y - M.Layout.Y);
             end if;
          end;
       end loop;
@@ -524,8 +508,8 @@ package body Lui.Models is
                    DX, DY  : Integer)
    is
    begin
-      Item.X := Item.X + DX;
-      Item.Y := Item.Y + DY;
+      Item.Layout.X := Item.Layout.X + DX;
+      Item.Layout.Y := Item.Layout.Y + DY;
    end Move;
 
    ----------
@@ -737,8 +721,9 @@ package body Lui.Models is
       Width, Height : Natural)
    is
    begin
-      Item.Width := Width;
-      Item.Height := Height;
+      Item.Layout.Width := Width;
+      Item.Layout.Height := Height;
+      Item.Layer_Changed := (others => True);
    end Resize;
 
    --------------
@@ -798,10 +783,10 @@ package body Lui.Models is
 
    procedure Set_Background
      (Item : in out Root_Object_Model'Class;
-      Colour : Lui.Colours.Colour_Type)
+      Color : Lui.Colors.Color_Type)
    is
    begin
-      Item.Background := Colour;
+      Item.Background := Color;
    end Set_Background;
 
    ----------------
@@ -810,11 +795,22 @@ package body Lui.Models is
 
    procedure Set_Border
      (Item : in out Root_Object_Model'Class;
-      Colour : Lui.Colours.Colour_Type)
+      Color : Lui.Colors.Color_Type)
    is
    begin
-      Item.Border := Colour;
+      Item.Border := Color;
    end Set_Border;
+
+   -----------------
+   -- Set_Changed --
+   -----------------
+
+   procedure Set_Changed
+     (Model : in out Root_Object_Model'Class)
+   is
+   begin
+      Model.Layer_Changed := (others => True);
+   end Set_Changed;
 
    ----------------------
    -- Set_Eye_Position --
@@ -839,8 +835,8 @@ package body Lui.Models is
       X, Y : Integer)
    is
    begin
-      Item.X := X;
-      Item.Y := Y;
+      Item.Layout.X := X;
+      Item.Layout.Y := Y;
    end Set_Location;
 
    --------------
@@ -853,6 +849,18 @@ package body Lui.Models is
    begin
       Item.Name := Ada.Strings.Unbounded.To_Unbounded_String (Name);
    end Set_Name;
+
+   ------------------------------
+   -- Set_Render_Layer_Changed --
+   ------------------------------
+
+   procedure Set_Render_Layer_Changed
+     (Model : in out Root_Object_Model'Class;
+      Layer : Render_Layer)
+   is
+   begin
+      Model.Layer_Changed (Layer) := True;
+   end Set_Render_Layer_Changed;
 
    ----------
    -- Show --
@@ -902,6 +910,22 @@ package body Lui.Models is
       end if;
    end Tables;
 
+   -------------------
+   -- Update_Models --
+   -------------------
+
+   procedure Update_Models
+     (Root : in out Root_Object_Model'Class)
+   is
+   begin
+      Root.Update;
+
+      for Inline_Model of Root.Inline_Models loop
+         Inline_Model.Model.Update_Models;
+      end loop;
+
+   end Update_Models;
+
    ---------------------
    -- Update_Property --
    ---------------------
@@ -928,7 +952,7 @@ package body Lui.Models is
 
    function Width (Item : Root_Object_Model) return Natural is
    begin
-      return Item.Width;
+      return Item.Layout.Width;
    end Width;
 
    ----------------

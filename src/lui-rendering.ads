@@ -1,7 +1,7 @@
 with WL.Bitmap_IO;
 with WL.Images;
 
-with Lui.Colours;
+with Lui.Colors;
 
 package Lui.Rendering is
 
@@ -15,87 +15,92 @@ package Lui.Rendering is
 
    type Buffer_Points is array (Positive range <>) of Buffer_Point_Type;
 
-   type Render_Layer is range 1 .. 16;
-
    type Root_Renderer is interface;
-
-   function Current_Render_Layer
-     (Renderer : Root_Renderer)
-      return Render_Layer
-      is abstract;
-
-   procedure Set_Current_Render_Layer
-     (Renderer : in out Root_Renderer;
-      Layer    : Render_Layer)
-   is abstract;
 
    function Image_Path
      (Renderer        : Root_Renderer'Class;
       Image_File_Name : String)
       return String;
 
-   procedure Set_Origin
+   procedure Push_Viewport
      (Renderer : in out Root_Renderer;
-      X, Y     : in     Integer)
+      Viewport : Layout_Rectangle)
    is abstract;
 
-   function Get_Origin
-     (Renderer : Root_Renderer)
-      return Buffer_Point_Type
-      is abstract;
+   procedure Pop_Viewport
+     (Renderer : in out Root_Renderer)
+   is abstract;
 
-   procedure Draw_Circle
+   procedure Set_Color
+     (Renderer : in out Root_Renderer;
+      Color    : Lui.Colors.Color_Type)
+   is abstract;
+
+   procedure Set_Color
+     (Renderer : in out Root_Renderer'Class;
+      R, G, B  : Unit_Real);
+
+   procedure Set_Font
+     (Renderer : in out Root_Renderer;
+      Name     : String;
+      Size     : Real;
+      Bold     : Boolean := False;
+      Italic   : Boolean := False)
+   is abstract;
+
+   procedure Set_Line_Width
+     (Renderer : in out Root_Renderer;
+      Width    : Positive_Real)
+   is abstract;
+
+   procedure Circle
      (Renderer   : in out Root_Renderer;
       X, Y       : in     Integer;
       Radius     : in     Positive;
-      Colour     : in     Lui.Colours.Colour_Type;
-      Filled     : in     Boolean;
-      Line_Width : in Natural := 1)
+      Filled     : in     Boolean)
    is abstract;
 
-   procedure Draw_Ellipse
+   procedure Ellipse
      (Renderer   : in out Root_Renderer;
       X, Y       : in     Integer;
       R1, R2     : in     Positive;
-      Colour     : in     Lui.Colours.Colour_Type;
-      Filled     : in     Boolean;
-      Line_Width : in Natural := 1)
+      Filled     : in     Boolean)
    is abstract;
 
-   procedure Draw_Rectangle
-     (Renderer : in out Root_Renderer;
+   procedure Rectangle
+     (Renderer : in out Root_Renderer'Class;
       X, Y     : in     Integer;
       W, H     : in     Natural;
-      Colour   : in     Lui.Colours.Colour_Type;
+      Filled   : in     Boolean);
+
+   procedure Rectangle
+     (Renderer : in out Root_Renderer;
+      Rec      : Layout_Rectangle;
       Filled   : in     Boolean)
    is abstract;
 
-   procedure Draw_Line
+   procedure Line
      (Renderer   : in out Root_Renderer;
       X1, Y1     : in     Integer;
-      X2, Y2     : in     Integer;
-      Colour     : in     Lui.Colours.Colour_Type;
-      Line_Width : Natural := 1)
+      X2, Y2     : in     Integer)
    is abstract;
 
-   procedure Draw_Polygon
+   procedure Polygon
      (Renderer : in out Root_Renderer;
       Vertices : Buffer_Points;
-      Colour   : Lui.Colours.Colour_Type;
       Filled   : Boolean)
    is abstract;
 
-   procedure Draw_String (Renderer : in out Root_Renderer;
-                          X, Y     : in     Integer;
-                          Size     : in     Positive;
-                          Colour   : in     Lui.Colours.Colour_Type;
-                          Text     : in     String)
+   procedure Text
+     (Renderer : in out Root_Renderer;
+      X, Y     : in     Integer;
+      Value    : in     String)
    is abstract;
 
-   procedure Draw_Image (Renderer : in out Root_Renderer;
-                         X, Y     : in     Integer;
-                         W, H     : in     Positive;
-                         Resource : in     String)
+   procedure Image
+     (Renderer : in out Root_Renderer;
+      Rec      : Layout_Rectangle;
+      Resource : String)
    is abstract;
 
    procedure Create_Bitmap_Resource

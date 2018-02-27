@@ -11,7 +11,7 @@ package body Lui.Models.Model_3D is
          Z      : Real;
          Pts    : Lui.Rendering.Buffer_Points (1 .. 50);
          Count  : Natural;
-         Colour : Colour_Type;
+         Color : Color_Type;
          Filled : Boolean;
       end record;
 
@@ -24,7 +24,7 @@ package body Lui.Models.Model_3D is
    procedure Add_To_Z_Buffer
      (Z      : Real;
       Pts    : Lui.Rendering.Buffer_Points;
-      Colour : Colour_Type;
+      Color : Color_Type;
       Filled : Boolean);
 
    procedure Draw_Z_Buffer
@@ -36,7 +36,7 @@ package body Lui.Models.Model_3D is
          Hit                  : Natural := 0;
          Object_X, Object_Y   : Integer := 0;
          Origin_X, Origin_Y   : Integer := 0;
-         Current_Render_Layer : Lui.Rendering.Render_Layer;
+         Current_Render_Layer : Render_Layer;
       end record;
 
    overriding
@@ -51,19 +51,19 @@ package body Lui.Models.Model_3D is
 
    overriding function Current_Render_Layer
      (Renderer : Object_Hit_Renderer)
-      return Lui.Rendering.Render_Layer
+      return Render_Layer
    is (Renderer.Current_Render_Layer);
 
    overriding procedure Set_Current_Render_Layer
      (Renderer : in out Object_Hit_Renderer;
-      Layer    : Lui.Rendering.Render_Layer)
+      Layer    : Render_Layer)
    is null;
 
    overriding procedure Draw_Circle
      (Renderer   : in out Object_Hit_Renderer;
       X, Y       : in     Integer;
       Radius     : in     Positive;
-      Colour     : in     Lui.Colours.Colour_Type;
+      Color     : in     Lui.Colors.Color_Type;
       Filled     : in     Boolean;
       Line_Width : in     Natural := 1);
 
@@ -71,7 +71,7 @@ package body Lui.Models.Model_3D is
      (Renderer   : in out Object_Hit_Renderer;
       X, Y       : in     Integer;
       R1, R2     : in     Positive;
-      Colour     : in     Lui.Colours.Colour_Type;
+      Color     : in     Lui.Colors.Color_Type;
       Filled     : in     Boolean;
       Line_Width : in     Natural := 1);
 
@@ -79,28 +79,28 @@ package body Lui.Models.Model_3D is
      (Renderer   : in out Object_Hit_Renderer;
       X1, Y1     : in     Integer;
       X2, Y2     : in     Integer;
-      Colour     : in     Lui.Colours.Colour_Type;
+      Color     : in     Lui.Colors.Color_Type;
       Line_Width : Natural := 1)
    is null;
 
    overriding procedure Draw_Polygon
      (Renderer : in out Object_Hit_Renderer;
       Vertices : Lui.Rendering.Buffer_Points;
-      Colour   : Lui.Colours.Colour_Type;
+      Color   : Lui.Colors.Color_Type;
       Filled   : Boolean);
 
    overriding procedure Draw_Rectangle
      (Renderer : in out Object_Hit_Renderer;
       X, Y     : in     Integer;
       W, H     : in     Natural;
-      Colour   : in     Lui.Colours.Colour_Type;
+      Color   : in     Lui.Colors.Color_Type;
       Filled   : in     Boolean);
 
    overriding procedure Draw_String
      (Renderer : in out Object_Hit_Renderer;
       X, Y     : in     Integer;
       Size     : in     Positive;
-      Colour   : in     Lui.Colours.Colour_Type;
+      Color   : in     Lui.Colors.Color_Type;
       Text     : in     String)
    is null;
 
@@ -122,12 +122,12 @@ package body Lui.Models.Model_3D is
       return Boolean
    is (True);
 
-   function Colour_To_Object
-     (Colour : Lui.Colours.Colour_Type)
+   function Color_To_Object
+     (Color : Lui.Colors.Color_Type)
       return Natural
-   is (Natural (Colour.Red * 100.0)
-       + 100 * Natural (Colour.Green * 100.0)
-       + 100 * 100 * Natural (Colour.Blue * 100.0));
+   is (Natural (Color.Red * 100.0)
+       + 100 * Natural (Color.Green * 100.0)
+       + 100 * 100 * Natural (Color.Blue * 100.0));
 
    ---------------------
    -- Add_To_Z_Buffer --
@@ -136,7 +136,7 @@ package body Lui.Models.Model_3D is
    procedure Add_To_Z_Buffer
      (Z      : Real;
       Pts    : Lui.Rendering.Buffer_Points;
-      Colour : Colour_Type;
+      Color : Color_Type;
       Filled : Boolean)
    is
       use Z_Buffer_Lists;
@@ -146,7 +146,7 @@ package body Lui.Models.Model_3D is
       S.Z := Z;
       S.Pts (Pts'Range) := Pts;
       S.Count := Pts'Length;
-      S.Colour := Colour;
+      S.Color := Color;
       S.Filled := Filled;
 
       while Has_Element (Position)
@@ -171,7 +171,7 @@ package body Lui.Models.Model_3D is
    is
    begin
       Model.Current_Object_Id := Id;
-      Model.Object_Id_Colour :=
+      Model.Object_Id_Color :=
         (Real (Id mod 100) / 100.0,
          Real (Id / 100 mod 100) / 100.0,
          Real (Id / 100 / 100 mod 100) / 100.0,
@@ -184,14 +184,14 @@ package body Lui.Models.Model_3D is
 
    procedure Begin_Surface
      (Model  : in out Root_3D_Model'Class;
-      Colour : Colour_Type)
+      Color : Color_Type)
    is
    begin
       Model.Current_Surface.Vs.Clear;
-      Model.Current_Surface.Colour :=
+      Model.Current_Surface.Color :=
         (case Model.Current_Render_Mode is
-            when Normal     => Colour,
-            when Object_Ids => Model.Object_Id_Colour);
+            when Normal     => Color,
+            when Object_Ids => Model.Object_Id_Color);
    end Begin_Surface;
 
    ------------------
@@ -220,7 +220,7 @@ package body Lui.Models.Model_3D is
 
    procedure Cone
      (Model      : in out Root_3D_Model'Class;
-      Colour     : in     Colour_Type;
+      Color     : in     Color_Type;
       X, Y, Z    : in     Real;
       RX, RY     : in     Real;
       DZ         : in     Real;
@@ -228,7 +228,7 @@ package body Lui.Models.Model_3D is
    is
    begin
       Model.Conical_Frustum
-        (Colour => Colour,
+        (Color => Color,
          X      => X,
          Y      => Y,
          Z      => Z,
@@ -246,7 +246,7 @@ package body Lui.Models.Model_3D is
 
    procedure Conical_Frustum
      (Model      : in out Root_3D_Model'Class;
-      Colour     : in     Colour_Type;
+      Color     : in     Color_Type;
       X, Y, Z    : in     Real;
       RX1, RY1   : in     Real;
       RX2, RY2   : in     Real;
@@ -297,7 +297,7 @@ package body Lui.Models.Model_3D is
                V4     : constant Vector_3 :=
                           Circles (H + 1, Longitude_Index);
             begin
-               Model.Begin_Surface (Colour);
+               Model.Begin_Surface (Color);
                Model.Vertex (V1 (1) + X, V1 (2) + Y, Z + V1 (3));
                Model.Vertex (V2 (1) + X, V2 (2) + Y, Z + V2 (3));
                Model.Vertex (V3 (1) + X, V3 (2) + Y, Z + V3 (3));
@@ -308,7 +308,7 @@ package body Lui.Models.Model_3D is
       end loop;
 
       if RX1 > 0.0 and then RY1 > 0.0 then
-         Model.Begin_Surface (Colour);
+         Model.Begin_Surface (Color);
          for I in reverse Circles'Range (2) loop
             Model.Vertex (Circles (0, I));
          end loop;
@@ -316,7 +316,7 @@ package body Lui.Models.Model_3D is
       end if;
 
       if RX2 > 0.0 and then RY2 > 0.0 then
-         Model.Begin_Surface (Colour);
+         Model.Begin_Surface (Color);
          for I in Circles'Range (2) loop
             Model.Vertex (Circles (Detail, I));
          end loop;
@@ -331,7 +331,7 @@ package body Lui.Models.Model_3D is
 
    procedure Cylinder
      (Model      : in out Root_3D_Model'Class;
-      Colour     : in     Colour_Type;
+      Color     : in     Color_Type;
       X, Y, Z    : in     Real;
       RX, RY     : in     Real;
       DZ         : in     Real;
@@ -339,7 +339,7 @@ package body Lui.Models.Model_3D is
    is
    begin
       Model.Conical_Frustum
-        (Colour => Colour,
+        (Color => Color,
          X      => X,
          Y      => Y,
          Z      => Z,
@@ -359,7 +359,7 @@ package body Lui.Models.Model_3D is
      (Renderer   : in out Object_Hit_Renderer;
       X, Y       : in     Integer;
       Radius     : in     Positive;
-      Colour     : in     Lui.Colours.Colour_Type;
+      Color     : in     Lui.Colors.Color_Type;
       Filled     : in     Boolean;
       Line_Width : in     Natural := 1)
    is
@@ -370,7 +370,7 @@ package body Lui.Models.Model_3D is
         + (Y - Renderer.Object_Y) ** 2
         < Radius ** 2
       then
-         Renderer.Hit := Colour_To_Object (Colour);
+         Renderer.Hit := Color_To_Object (Color);
       end if;
    end Draw_Circle;
 
@@ -382,7 +382,7 @@ package body Lui.Models.Model_3D is
      (Renderer   : in out Object_Hit_Renderer;
       X, Y       : in     Integer;
       R1, R2     : in     Positive;
-      Colour     : in     Lui.Colours.Colour_Type;
+      Color     : in     Lui.Colors.Color_Type;
       Filled     : in     Boolean;
       Line_Width : in     Natural := 1)
    is
@@ -393,7 +393,7 @@ package body Lui.Models.Model_3D is
         + (Real (Y - Renderer.Object_Y) / Real (R2)) ** 2
         < 1.0
       then
-         Renderer.Hit := Colour_To_Object (Colour);
+         Renderer.Hit := Color_To_Object (Color);
       end if;
    end Draw_Ellipse;
 
@@ -422,7 +422,7 @@ package body Lui.Models.Model_3D is
    overriding procedure Draw_Polygon
      (Renderer : in out Object_Hit_Renderer;
       Vertices : Lui.Rendering.Buffer_Points;
-      Colour   : Lui.Colours.Colour_Type;
+      Color   : Lui.Colors.Color_Type;
       Filled   : Boolean)
    is
       pragma Unreferenced (Filled);
@@ -447,7 +447,7 @@ package body Lui.Models.Model_3D is
       if Renderer.Object_X in X1 .. X2
         and then Renderer.Object_Y in Y1 .. Y2
       then
-         Renderer.Hit := Colour_To_Object (Colour);
+         Renderer.Hit := Color_To_Object (Color);
       end if;
    end Draw_Polygon;
 
@@ -459,7 +459,7 @@ package body Lui.Models.Model_3D is
      (Renderer : in out Object_Hit_Renderer;
       X, Y     : in     Integer;
       W, H     : in     Natural;
-      Colour   : in     Lui.Colours.Colour_Type;
+      Color   : in     Lui.Colors.Color_Type;
       Filled   : in     Boolean)
    is
       pragma Unreferenced (Filled);
@@ -467,7 +467,7 @@ package body Lui.Models.Model_3D is
       if Renderer.Object_X in X .. X + W
         and then Renderer.Object_Y in Y .. Y + H
       then
-         Renderer.Hit := Colour_To_Object (Colour);
+         Renderer.Hit := Color_To_Object (Color);
       end if;
    end Draw_Rectangle;
 
@@ -482,7 +482,7 @@ package body Lui.Models.Model_3D is
       for S of Z_Buffer loop
          Renderer.Draw_Polygon
            (Vertices => S.Pts (1 .. S.Count),
-            Colour   => S.Colour,
+            Color   => S.Color,
             Filled   => S.Filled);
       end loop;
    end Draw_Z_Buffer;
@@ -496,7 +496,7 @@ package body Lui.Models.Model_3D is
    is
    begin
       Model.Current_Object_Id := 0;
-      Model.Object_Id_Colour := (0.0, 0.0, 0.0, 1.0);
+      Model.Object_Id_Color := (0.0, 0.0, 0.0, 1.0);
    end End_Object;
 
    -----------------
@@ -535,7 +535,7 @@ package body Lui.Models.Model_3D is
 
    procedure Icosohedral_Sphere
      (Model      : in out Root_3D_Model'Class;
-      Colour     : in     Colour_Type;
+      Color     : in     Color_Type;
       RX, RY, RZ : in     Real;
       Detail     : in     Positive)
    is
@@ -567,7 +567,7 @@ package body Lui.Models.Model_3D is
       is
       begin
          if Depth = 0 then
-            Model.Begin_Surface (Colour);
+            Model.Begin_Surface (Color);
             Model.Vertex (V1 (1) * RX, V1 (2) * RY, V1 (3) * RZ);
             Model.Vertex (V2 (1) * RX, V2 (2) * RY, V2 (3) * RZ);
             Model.Vertex (V3 (1) * RX, V3 (2) * RY, V3 (3) * RZ);
@@ -704,7 +704,7 @@ package body Lui.Models.Model_3D is
                begin
                   if Z >= 0.0 then
                      Add_To_Z_Buffer
-                       (Z_Coord, Pts, Surface.Colour, not Wireframe);
+                       (Z_Coord, Pts, Surface.Color, not Wireframe);
 --                       for I in Xs'Range loop
 --                          declare
 --                             J  : constant Positive :=
@@ -712,7 +712,7 @@ package body Lui.Models.Model_3D is
 --                          begin
 --                             Renderer.Draw_Line
 --                               (Xs (I), Ys (I), Xs (J), Ys (J),
---                                Colour => Surface.Colour);
+--                                Color => Surface.Color);
 --                          end;
 --                       end loop;
                   end if;
@@ -801,7 +801,7 @@ package body Lui.Models.Model_3D is
 
    procedure Sphere
      (Model      : in out Root_3D_Model'Class;
-      Colour     : in     Colour_Type;
+      Color     : in     Color_Type;
       RX, RY, RZ : in     Real;
       Detail     : in     Positive)
    is
@@ -848,7 +848,7 @@ package body Lui.Models.Model_3D is
                            then Mesh (Latitude_Index + 1, Longitude_Index)
                            else (0.0, 0.0, RZ));
             begin
-               Model.Begin_Surface (Colour);
+               Model.Begin_Surface (Color);
                Model.Vertex (V1 (1), V1 (2), V1 (3));
                Model.Vertex (V2 (1), V2 (2), V2 (3));
                Model.Vertex (V3 (1), V3 (2), V3 (3));
@@ -856,7 +856,7 @@ package body Lui.Models.Model_3D is
                   Model.Vertex (V4 (1), V4 (2), V4 (3));
                end if;
                Model.End_Surface;
-               Model.Begin_Surface (Colour);
+               Model.Begin_Surface (Color);
                if Latitude_Index < Detail - 1 then
                   Model.Vertex (V4 (1), V4 (2), -V4 (3));
                end if;

@@ -37,7 +37,7 @@ with Cairo.Png;
 with WL.Bitmap_IO;
 with WL.Images;
 
-with Lui.Colours;
+with Lui.Colors;
 with Lui.Gadgets;
 with Lui.Handles;
 with Lui.Rendering;
@@ -46,7 +46,7 @@ with Lui.Tables;
 package body Lui.Gtk_UI is
 
    type Surface_Render_Layers is
-     array (Lui.Rendering.Render_Layer) of Cairo.Cairo_Surface;
+     array (Render_Layer) of Cairo.Cairo_Surface;
 
    type Model_Object_Record is
      new Glib.Object.GObject_Record with
@@ -74,87 +74,81 @@ package body Lui.Gtk_UI is
    procedure Append (List  : in out Gtk_Active_Model_List;
                      Model : Lui.Models.Object_Model);
 
+   type Viewport_Record is
+      record
+         Context : Cairo.Cairo_Context;
+         Surface : Cairo.Cairo_Surface;
+         Layout  : Layout_Rectangle;
+      end record;
+
+   package Viewport_Stacks is
+     new Ada.Containers.Doubly_Linked_Lists (Viewport_Record);
+
    type Cairo_Renderer is
      new Lui.Rendering.Root_Renderer with
       record
          Context       : Cairo.Cairo_Context;
-         Current_Layer : Lui.Rendering.Render_Layer := 1;
-         Origin_X      : Integer := 0;
-         Origin_Y      : Integer := 0;
+         Viewports     : Viewport_Stacks.List;
       end record;
 
-   overriding
-   procedure Set_Origin
+   overriding procedure Set_Font
      (Renderer : in out Cairo_Renderer;
-      X, Y     : in     Integer);
+      Name     : String;
+      Size     : Real;
+      Bold     : Boolean := False;
+      Italic   : Boolean := False);
 
-   overriding function Get_Origin
-     (Renderer : Cairo_Renderer)
-      return Lui.Rendering.Buffer_Point_Type
-   is ((Renderer.Origin_X, Renderer.Origin_Y));
-
-   overriding function Current_Render_Layer
-     (Renderer : Cairo_Renderer)
-      return Lui.Rendering.Render_Layer
-   is (Renderer.Current_Layer);
-
-   overriding procedure Set_Current_Render_Layer
+   overriding procedure Set_Line_Width
      (Renderer : in out Cairo_Renderer;
-      Layer    : Lui.Rendering.Render_Layer);
+      Width    : Positive_Real);
 
-   overriding
-   procedure Draw_Circle
+   overriding procedure Push_Viewport
+     (Renderer : in out Cairo_Renderer;
+      Viewport : Layout_Rectangle);
+
+   overriding procedure Pop_Viewport
+     (Renderer : in out Cairo_Renderer);
+
+   overriding procedure Set_Color
+     (Renderer : in out Cairo_Renderer;
+      Color    : Lui.Colors.Color_Type);
+
+   overriding procedure Circle
      (Renderer   : in out Cairo_Renderer;
       X, Y       : in     Integer;
       Radius     : in     Positive;
-      Colour     : in     Lui.Colours.Colour_Type;
-      Filled     : in     Boolean;
-      Line_Width : in     Natural := 1);
+      Filled     : in     Boolean);
 
-   overriding
-   procedure Draw_Ellipse
+   overriding procedure Ellipse
      (Renderer   : in out Cairo_Renderer;
       X, Y       : in     Integer;
       R1, R2     : in     Positive;
-      Colour     : in     Lui.Colours.Colour_Type;
-      Filled     : in     Boolean;
-      Line_Width : in     Natural := 1);
+      Filled     : in     Boolean);
 
-   overriding
-   procedure Draw_Line
+   overriding procedure Line
      (Renderer   : in out Cairo_Renderer;
       X1, Y1     : in     Integer;
-      X2, Y2     : in     Integer;
-      Colour     : in     Lui.Colours.Colour_Type;
-      Line_Width : Natural := 1);
+      X2, Y2     : in     Integer);
 
-   overriding
-   procedure Draw_Polygon
+   overriding procedure Polygon
      (Renderer : in out Cairo_Renderer;
       Vertices : Lui.Rendering.Buffer_Points;
-      Colour   : Lui.Colours.Colour_Type;
       Filled   : Boolean);
 
-   overriding
-   procedure Draw_Rectangle
+   overriding procedure Rectangle
      (Renderer : in out Cairo_Renderer;
-      X, Y     : in     Integer;
-      W, H     : in     Natural;
-      Colour   : in     Lui.Colours.Colour_Type;
-      Filled   : in     Boolean);
+      Rec      : Layout_Rectangle;
+      Filled   : Boolean);
 
-   overriding
-   procedure Draw_String (Renderer : in out Cairo_Renderer;
-                          X, Y     : in     Integer;
-                          Size     : in     Positive;
-                          Colour   : in     Lui.Colours.Colour_Type;
-                          Text     : in     String);
+   overriding procedure Text
+     (Renderer : in out Cairo_Renderer;
+      X, Y     : Integer;
+      Value    : String);
 
-   overriding
-   procedure Draw_Image (Renderer : in out Cairo_Renderer;
-                         X, Y     : in     Integer;
-                         W, H     : in     Positive;
-                         Resource : in     String);
+   overriding procedure Image
+     (Renderer : in out Cairo_Renderer;
+      Rec      : Layout_Rectangle;
+      Resource : String);
 
    overriding procedure Create_Bitmap_Resource
      (Renderer      : in out Cairo_Renderer;
@@ -171,24 +165,19 @@ package body Lui.Gtk_UI is
       Resource_Name : String)
       return Boolean;
 
-   procedure Set_Colour (Renderer : Cairo_Renderer'Class;
-                         Colour   : Lui.Colours.Colour_Type);
-
-   procedure Set_Line_Width (Renderer : Cairo_Renderer'Class;
-                             Width    : Natural);
-
    Renderer : Cairo_Renderer;
 
-   procedure Render_Model_Layers
+   function Render_Model_Layers
      (Model   : Lui.Models.Object_Model;
       Layers  : Surface_Render_Layers;
       Width   : Glib.Gdouble;
-      Height  : Glib.Gdouble);
+      Height  : Glib.Gdouble)
+      return Boolean;
 
    procedure Render_Model
      (Model   : Lui.Models.Object_Model;
       Surface : Cairo.Cairo_Surface;
-      Layer   : Lui.Rendering.Render_Layer);
+      Layer   : Render_Layer);
 
    package Image_Maps is
      new Ada.Containers.Hashed_Maps
@@ -310,7 +299,7 @@ package body Lui.Gtk_UI is
 
    procedure Show_Model
      (Context       : Cairo.Cairo_Context;
-      Layer         : Lui.Rendering.Render_Layer;
+      Layer         : Render_Layer;
       Model         : Lui.Models.Object_Model);
 
    procedure Show_Gadget
@@ -430,6 +419,34 @@ package body Lui.Gtk_UI is
 
    end Append;
 
+   ------------
+   -- Circle --
+   ------------
+
+   overriding procedure Circle
+     (Renderer   : in out Cairo_Renderer;
+      X, Y       : in     Integer;
+      Radius     : in     Positive;
+      Filled     : in     Boolean)
+   is
+      use Glib;
+   begin
+      Cairo.Arc
+        (Cr     => Renderer.Context,
+         Xc     => Glib.Gdouble (X),
+         Yc     => Glib.Gdouble (Y),
+         Radius => Glib.Gdouble (Radius),
+         Angle1 => 0.0,
+         Angle2 => 2.0 * Ada.Numerics.Pi);
+
+      if Filled then
+         Cairo.Fill (Renderer.Context);
+      else
+         Cairo.Stroke (Renderer.Context);
+      end if;
+
+   end Circle;
+
    -----------------------------
    -- Configure_Model_Handler --
    -----------------------------
@@ -445,7 +462,12 @@ package body Lui.Gtk_UI is
    begin
       Slot.Width := Event.Width;
       Slot.Height := Event.Height;
-      for I in Lui.Rendering.Render_Layer range
+
+      Ada.Text_IO.Put_Line
+        ("configure: " & Natural'Image (Natural (Slot.Width))
+         & Natural'Image (Natural (Slot.Height)));
+
+      for I in Render_Layer range
         1 .. Slot.Model.Last_Render_Layer
       loop
          declare
@@ -462,10 +484,15 @@ package body Lui.Gtk_UI is
          end;
       end loop;
 
-      Render_Model_Layers
-        (Slot.Model, Slot.Layers,
-         Glib.Gdouble (Slot.Width),
-         Glib.Gdouble (Slot.Height));
+      declare
+         Changed : constant Boolean :=
+                     Render_Model_Layers
+                       (Slot.Model, Slot.Layers,
+                        Glib.Gdouble (Slot.Width),
+                        Glib.Gdouble (Slot.Height));
+      begin
+         pragma Assert (Changed);
+      end;
 
       Slot.Widget.Grab_Focus;
 
@@ -494,14 +521,14 @@ package body Lui.Gtk_UI is
          for X in 0 .. Bitmap_Width - 1 loop
             declare
                subtype Byte is Cairo.Image_Surface.Byte;
-               Colour : constant WL.Bitmap_IO.Colour_Type :=
+               Color : constant WL.Bitmap_IO.Colour_Type :=
                           WL.Bitmap_IO.Colour
                             (Bitmap, X, Bitmap_Height - Y - 1);
                ARGB32 : constant Cairo.Image_Surface.ARGB32_Data :=
-                          (Alpha => Byte (Colour.Alpha),
-                           Blue  => Byte (Colour.B),
-                           Green => Byte (Colour.G),
-                           Red   => Byte (Colour.R));
+                          (Alpha => Byte (Color.Alpha),
+                           Blue  => Byte (Color.B),
+                           Green => Byte (Color.G),
+                           Red   => Byte (Color.R));
                Index  : constant Natural := X + Y * Bitmap_Width;
             begin
                Data (Index) := ARGB32;
@@ -565,13 +592,13 @@ package body Lui.Gtk_UI is
                for Y in 1 .. Image.Height (Layer) loop
                   declare
                      subtype Byte is Cairo.Image_Surface.Byte;
-                     Colour : constant WL.Images.Image_Color :=
+                     Color : constant WL.Images.Image_Color :=
                                 Image.Color (X, Y);
                      ARGB32 : constant Cairo.Image_Surface.ARGB32_Data :=
-                                (Alpha => Byte (Colour.Alpha),
-                                 Blue  => Byte (Colour.Blue),
-                                 Green => Byte (Colour.Green),
-                                 Red   => Byte (Colour.Red));
+                                (Alpha => Byte (Color.Alpha),
+                                 Blue  => Byte (Color.Blue),
+                                 Green => Byte (Color.Green),
+                                 Red   => Byte (Color.Red));
                      Index  : constant Natural :=
                                 Natural (X) - 1
                                 + (Height - Natural (Y)) * Width;
@@ -610,65 +637,23 @@ package body Lui.Gtk_UI is
 
    end Create_Image_Resource;
 
-   -----------------
-   -- Draw_Circle --
-   -----------------
+   -------------
+   -- Ellipse --
+   -------------
 
-   overriding
-   procedure Draw_Circle
-     (Renderer   : in out Cairo_Renderer;
-      X, Y       : in     Integer;
-      Radius     : in     Positive;
-      Colour     : in     Lui.Colours.Colour_Type;
-      Filled     : in     Boolean;
-      Line_Width : in     Natural := 1)
-   is
-      use Glib;
-   begin
-      Set_Colour (Renderer, Colour);
-      Set_Line_Width (Renderer, Line_Width);
-
-      Cairo.Arc
-        (Cr     => Renderer.Context,
-         Xc     => Glib.Gdouble (X + Renderer.Origin_X),
-         Yc     => Glib.Gdouble (Y + Renderer.Origin_Y),
-         Radius => Glib.Gdouble (Radius),
-         Angle1 => 0.0,
-         Angle2 => 2.0 * Ada.Numerics.Pi);
-
-      if Filled then
-         Cairo.Fill (Renderer.Context);
-      else
-         Cairo.Stroke (Renderer.Context);
-      end if;
-
-   end Draw_Circle;
-
-   ------------------
-   -- Draw_Ellipse --
-   ------------------
-
-   overriding procedure Draw_Ellipse
+   overriding procedure Ellipse
      (Renderer   : in out Cairo_Renderer;
       X, Y       : in     Integer;
       R1, R2     : in     Positive;
-      Colour     : in     Lui.Colours.Colour_Type;
-      Filled     : in     Boolean;
-      Line_Width : in     Natural := 1)
+      Filled     : in     Boolean)
    is
       use Glib;
    begin
-      Set_Colour (Renderer, Colour);
-      Cairo.Set_Line_Width
-        (Renderer.Context,
-         Width => Glib.Gdouble (Line_Width)
-         / Glib.Gdouble (Positive'Min (R1, R2)));
-
       Cairo.Save (Renderer.Context);
       Cairo.Translate
         (Renderer.Context,
-         Glib.Gdouble (X + Renderer.Origin_X),
-         Glib.Gdouble (Y + Renderer.Origin_Y));
+         Glib.Gdouble (X),
+         Glib.Gdouble (Y));
       Cairo.Scale
         (Renderer.Context, Glib.Gdouble (R1), Glib.Gdouble (R2));
 
@@ -683,186 +668,7 @@ package body Lui.Gtk_UI is
 
       Cairo.Restore (Renderer.Context);
 
-   end Draw_Ellipse;
-
-   ----------------
-   -- Draw_Image --
-   ----------------
-
-   overriding
-   procedure Draw_Image (Renderer : in out Cairo_Renderer;
-                         X, Y     : in     Integer;
-                         W, H     : in     Positive;
-                         Resource : in     String)
-   is
-      use Ada.Strings.Unbounded;
-      Base_Image_Key   : constant Unbounded_String :=
-                           To_Unbounded_String (Resource);
-      Base_Image       : Cairo.Cairo_Surface;
-   begin
-      if State.Image_Cache.Contains (Base_Image_Key) then
-         Base_Image := State.Image_Cache.Element (Base_Image_Key);
-      else
-         declare
-            Path : constant String :=
-                     Renderer.Image_Path (Resource & ".png");
-         begin
-            if not Ada.Directories.Exists (Path) then
-               Ada.Text_IO.Put_Line
-                 (Ada.Text_IO.Standard_Error,
-                  "file not found: " & Path);
-            end if;
-            Base_Image := Cairo.Png.Create_From_Png (Path);
-            State.Image_Cache.Insert (Base_Image_Key, Base_Image);
-         end;
-      end if;
-
-      declare
-         use Glib;
-         Img_Height : constant Gint :=
-                        Cairo.Image_Surface.Get_Height (Base_Image);
-         Img_Width  : constant Gint :=
-                        Cairo.Image_Surface.Get_Width (Base_Image);
-         Height_Ratio : constant Gdouble := Gdouble (H) / Gdouble (Img_Height);
-         Width_Ratio  : constant Gdouble := Gdouble (W) / Gdouble (Img_Width);
-      begin
-
-         Cairo.Save (Renderer.Context);
-         Cairo.Translate
-           (Renderer.Context,
-            Gdouble (X + Renderer.Origin_X),
-            Gdouble (Y + Renderer.Origin_Y));
-         Cairo.Scale (Renderer.Context, Width_Ratio, Height_Ratio);
-         Cairo.Set_Source_Surface (Renderer.Context, Base_Image, 0.0, 0.0);
-         Cairo.Paint (Renderer.Context);
-         Cairo.Restore (Renderer.Context);
-
-      end;
-
-   end Draw_Image;
-
-   ---------------
-   -- Draw_Line --
-   ---------------
-
-   overriding
-   procedure Draw_Line
-     (Renderer   : in out Cairo_Renderer;
-      X1, Y1     : in     Integer;
-      X2, Y2     : in     Integer;
-      Colour     : in     Lui.Colours.Colour_Type;
-      Line_Width : Natural := 1)
-   is
-      use Glib;
-   begin
-      Set_Colour (Renderer, Colour);
-      Cairo.Set_Line_Cap (Renderer.Context, Cairo.Cairo_Line_Cap_Round);
-      Cairo.Set_Line_Width (Renderer.Context, Gdouble (Line_Width));
-      Cairo.Move_To (Renderer.Context,
-                     Gdouble (X1 + Renderer.Origin_X),
-                     Gdouble (Y1 + Renderer.Origin_Y));
-      Cairo.Line_To (Renderer.Context,
-                     Gdouble (X2 + Renderer.Origin_X),
-                     Gdouble (Y2 + Renderer.Origin_Y));
-      Cairo.Stroke (Renderer.Context);
-   end Draw_Line;
-
-   ------------------
-   -- Draw_Polygon --
-   ------------------
-
-   overriding procedure Draw_Polygon
-     (Renderer : in out Cairo_Renderer;
-      Vertices : Lui.Rendering.Buffer_Points;
-      Colour   : Lui.Colours.Colour_Type;
-      Filled   : Boolean)
-   is
-      use Glib;
-      First : Boolean := True;
-   begin
-      Set_Colour (Renderer, Colour);
-
-      for V of Vertices loop
-         declare
-            X : constant Gdouble := Gdouble (V.X + Renderer.Origin_X);
-            Y : constant Gdouble := Gdouble (V.Y + Renderer.Origin_Y);
-         begin
-            if First then
-               Cairo.Move_To (Renderer.Context, X, Y);
-               First := False;
-            else
-               Cairo.Line_To (Renderer.Context, X, Y);
-            end if;
-         end;
-      end loop;
-
-      Cairo.Line_To
-        (Renderer.Context,
-         Gdouble (Vertices (Vertices'First).X + Renderer.Origin_X),
-         Gdouble (Vertices (Vertices'First).Y + Renderer.Origin_Y));
-
-      if Filled then
-         Cairo.Fill_Preserve (Renderer.Context);
-         Cairo.Set_Source_Rgb (Renderer.Context, 0.0, 0.0, 0.0);
-         Cairo.Set_Line_Width (Renderer.Context, 1.0);
-      end if;
-
-      Cairo.Stroke (Renderer.Context);
-
-   end Draw_Polygon;
-
-   --------------------
-   -- Draw_Rectangle --
-   --------------------
-
-   overriding
-   procedure Draw_Rectangle
-     (Renderer : in out Cairo_Renderer;
-      X, Y     : in     Integer;
-      W, H     : in     Natural;
-      Colour   : in     Lui.Colours.Colour_Type;
-      Filled   : in     Boolean)
-   is
-      use Glib;
-   begin
-      Set_Colour (Renderer, Colour);
-      Cairo.Rectangle
-        (Cr     => Renderer.Context,
-         X      => Gdouble (X + Renderer.Origin_X),
-         Y      => Gdouble (Y + Renderer.Origin_Y),
-         Width  => Gdouble (W),
-         Height => Gdouble (H));
-      if Filled then
-         Cairo.Fill (Renderer.Context);
-      else
-         Cairo.Set_Line_Width (Renderer.Context, 1.0);
-         Cairo.Stroke (Renderer.Context);
-      end if;
-   end Draw_Rectangle;
-
-   -----------------
-   -- Draw_String --
-   -----------------
-
-   overriding
-   procedure Draw_String (Renderer : in out Cairo_Renderer;
-                          X, Y     : in     Integer;
-                          Size     : in     Positive;
-                          Colour   : in     Lui.Colours.Colour_Type;
-                          Text     : in     String)
-   is
-   begin
-      Set_Colour (Renderer, Colour);
-      Cairo.Select_Font_Face (Renderer.Context, "Sans",
-                              Cairo.Cairo_Font_Slant_Normal,
-                              Cairo.Cairo_Font_Weight_Bold);
-      Cairo.Move_To
-        (Renderer.Context,
-         Glib.Gdouble (X + Renderer.Origin_X),
-         Glib.Gdouble (Y + Renderer.Origin_Y));
-      Cairo.Set_Font_Size (Renderer.Context, Glib.Gdouble (Size));
-      Cairo.Show_Text (Renderer.Context, Text);
-   end Draw_String;
+   end Ellipse;
 
    --------------------------
    -- Expose_Model_Handler --
@@ -917,6 +723,61 @@ package body Lui.Gtk_UI is
            (Resource_Name));
    end Have_Resource;
 
+   -----------
+   -- Image --
+   -----------
+
+   overriding procedure Image
+     (Renderer : in out Cairo_Renderer;
+      Rec      : Layout_Rectangle;
+      Resource : String)
+   is
+      use Ada.Strings.Unbounded;
+      Base_Image_Key   : constant Unbounded_String :=
+                           To_Unbounded_String (Resource);
+      Base_Image       : Cairo.Cairo_Surface;
+   begin
+      if State.Image_Cache.Contains (Base_Image_Key) then
+         Base_Image := State.Image_Cache.Element (Base_Image_Key);
+      else
+         declare
+            Path : constant String :=
+                     Renderer.Image_Path (Resource & ".png");
+         begin
+            if not Ada.Directories.Exists (Path) then
+               Ada.Text_IO.Put_Line
+                 (Ada.Text_IO.Standard_Error,
+                  "file not found: " & Path);
+            end if;
+            Base_Image := Cairo.Png.Create_From_Png (Path);
+            State.Image_Cache.Insert (Base_Image_Key, Base_Image);
+         end;
+      end if;
+
+      declare
+         use Glib;
+         Img_Height   : constant Gint :=
+                          Cairo.Image_Surface.Get_Height (Base_Image);
+         Img_Width    : constant Gint :=
+                          Cairo.Image_Surface.Get_Width (Base_Image);
+         Height_Ratio : constant Gdouble :=
+                          Gdouble (Rec.Height) / Gdouble (Img_Height);
+         Width_Ratio  : constant Gdouble :=
+                          Gdouble (Rec.Width) / Gdouble (Img_Width);
+      begin
+
+         Cairo.Save (Renderer.Context);
+         Cairo.Translate
+           (Renderer.Context, Gdouble (Rec.X), Gdouble (Rec.Y));
+         Cairo.Scale (Renderer.Context, Width_Ratio, Height_Ratio);
+         Cairo.Set_Source_Surface (Renderer.Context, Base_Image, 0.0, 0.0);
+         Cairo.Paint (Renderer.Context);
+         Cairo.Restore (Renderer.Context);
+
+      end;
+
+   end Image;
+
    ------------------------------
    -- Info_Select_Row_Callback --
    ------------------------------
@@ -941,6 +802,23 @@ package body Lui.Gtk_UI is
          Select_Model (Obj_Model);
       end if;
    end Info_Select_Row_Callback;
+
+   ----------
+   -- Line --
+   ----------
+
+   overriding procedure Line
+     (Renderer   : in out Cairo_Renderer;
+      X1, Y1     : in     Integer;
+      X2, Y2     : in     Integer)
+   is
+      use Glib;
+   begin
+      Cairo.Set_Line_Cap (Renderer.Context, Cairo.Cairo_Line_Cap_Round);
+      Cairo.Move_To (Renderer.Context, Gdouble (X1), Gdouble (Y1));
+      Cairo.Line_To (Renderer.Context, Gdouble (X2), Gdouble (Y2));
+      Cairo.Stroke (Renderer.Context);
+   end Line;
 
    ----------------
    -- Load_Table --
@@ -1061,21 +939,6 @@ package body Lui.Gtk_UI is
    begin
       if Event.Button.Button = 1 then
          Model.Select_XY (X, Y);
-         declare
-            use Lui.Models;
-            New_Model : constant Object_Model :=
-                          Model.Select_XY
-                            (X - Renderer.Origin_X,
-                             Y - Renderer.Origin_Y);
-         begin
-            if New_Model /= null then
-               Select_Model (New_Model);
-            else
-               State.Dragging := True;
-               State.Last_Drag_X := X;
-               State.Last_Drag_Y := Y;
-            end if;
-         end;
          W.Queue_Draw;
          return True;
       else
@@ -1190,6 +1053,122 @@ package body Lui.Gtk_UI is
       Select_Model (Model);
    end On_Model_Changed;
 
+   -------------
+   -- Polygon --
+   -------------
+
+   overriding procedure Polygon
+     (Renderer : in out Cairo_Renderer;
+      Vertices : Lui.Rendering.Buffer_Points;
+      Filled   : Boolean)
+   is
+      use Glib;
+      First : Boolean := True;
+   begin
+
+      for V of Vertices loop
+         declare
+            X : constant Gdouble := Gdouble (V.X);
+            Y : constant Gdouble := Gdouble (V.Y);
+         begin
+            if First then
+               Cairo.Move_To (Renderer.Context, X, Y);
+               First := False;
+            else
+               Cairo.Line_To (Renderer.Context, X, Y);
+            end if;
+         end;
+      end loop;
+
+      Cairo.Line_To
+        (Renderer.Context,
+         Gdouble (Vertices (Vertices'First).X),
+         Gdouble (Vertices (Vertices'First).Y));
+
+      if Filled then
+         Cairo.Fill_Preserve (Renderer.Context);
+         Cairo.Set_Source_Rgb (Renderer.Context, 0.0, 0.0, 0.0);
+         Cairo.Set_Line_Width (Renderer.Context, 1.0);
+      end if;
+
+      Cairo.Stroke (Renderer.Context);
+
+   end Polygon;
+
+   ------------------
+   -- Pop_Viewport --
+   ------------------
+
+   overriding procedure Pop_Viewport
+     (Renderer : in out Cairo_Renderer)
+   is
+      Top     : constant Viewport_Record :=
+                  Renderer.Viewports.Last_Element;
+   begin
+      Renderer.Viewports.Delete_Last;
+
+      Cairo.Destroy (Renderer.Context);
+      Renderer.Context := Top.Context;
+
+      Cairo.Save (Renderer.Context);
+
+      Cairo.Set_Source_Surface
+        (Cr      => Renderer.Context,
+         Surface => Top.Surface,
+         X       => Glib.Gdouble (Top.Layout.X),
+         Y       => Glib.Gdouble (Top.Layout.Y));
+      Cairo.Paint (Renderer.Context);
+
+      Cairo.Surface_Destroy (Top.Surface);
+   end Pop_Viewport;
+
+   -------------------
+   -- Push_Viewport --
+   -------------------
+
+   overriding procedure Push_Viewport
+     (Renderer : in out Cairo_Renderer;
+      Viewport : Layout_Rectangle)
+   is
+      Surface : constant Cairo.Cairo_Surface :=
+                  Cairo.Image_Surface.Create
+                    (Format => Cairo.Image_Surface.Cairo_Format_ARGB32,
+                     Width  => Glib.Gint (Viewport.Width),
+                     Height => Glib.Gint (Viewport.Height));
+   begin
+      Renderer.Viewports.Append
+        (Viewport_Record'
+           (Context => Renderer.Context,
+            Surface => Surface,
+            Layout  => Viewport));
+      Renderer.Context := Cairo.Create (Surface);
+   end Push_Viewport;
+
+   ---------------
+   -- Rectangle --
+   ---------------
+
+   overriding procedure Rectangle
+     (Renderer : in out Cairo_Renderer;
+      Rec      : Layout_Rectangle;
+      Filled   : Boolean)
+   is
+      use Glib;
+   begin
+      Cairo.Rectangle
+        (Cr     => Renderer.Context,
+         X      => Gdouble (Rec.X),
+         Y      => Gdouble (Rec.Y),
+         Width  => Gdouble (Rec.Width),
+         Height => Gdouble (Rec.Height));
+      if Filled then
+         Cairo.Fill (Renderer.Context);
+      else
+         Cairo.Set_Line_Width (Renderer.Context, 1.0);
+         Cairo.Stroke (Renderer.Context);
+      end if;
+   end Rectangle;
+
    -------------------
    -- Refresh_Table --
    -------------------
@@ -1241,7 +1220,7 @@ package body Lui.Gtk_UI is
    procedure Render_Model
      (Model   : Lui.Models.Object_Model;
       Surface : Cairo.Cairo_Surface;
-      Layer   : Lui.Rendering.Render_Layer)
+      Layer   : Render_Layer)
    is
       Context : constant Cairo.Cairo_Context :=
                   Cairo.Create (Surface);
@@ -1255,13 +1234,16 @@ package body Lui.Gtk_UI is
    -- Render_Model_Layers --
    -------------------------
 
-   procedure Render_Model_Layers
+   function Render_Model_Layers
      (Model   : Lui.Models.Object_Model;
       Layers  : Surface_Render_Layers;
       Width   : Glib.Gdouble;
       Height  : Glib.Gdouble)
+      return Boolean
    is
       use Lui.Rendering;
+
+      Changed : Boolean := False;
 
       procedure Render_Single_Model
         (M : Lui.Models.Object_Model);
@@ -1279,6 +1261,8 @@ package body Lui.Gtk_UI is
          for I in 1 .. M.Last_Render_Layer loop
             if M.Render_Layer_Changed (I) then
                Render_Model (M, Layers (I), I);
+               M.Clear_Render_Layer_Changed (I);
+               Changed := True;
             end if;
          end loop;
          M.After_Render (Renderer);
@@ -1289,7 +1273,9 @@ package body Lui.Gtk_UI is
       H : constant Natural := Natural (Height);
    begin
       if W /= Model.Width or else H /= Model.Height then
+         Ada.Text_IO.Put_Line ("resize:" & W'Img & H'Img);
          Model.Resize (W, H);
+         Changed := True;
       end if;
 
       Render_Single_Model (Model);
@@ -1326,6 +1312,8 @@ package body Lui.Gtk_UI is
             end loop;
          end if;
       end;
+
+      return Changed;
 
    end Render_Model_Layers;
 
@@ -1371,62 +1359,64 @@ package body Lui.Gtk_UI is
    end Select_Model;
 
    ----------------
-   -- Set_Colour --
+   -- Set_Color --
    ----------------
 
-   procedure Set_Colour (Renderer : Cairo_Renderer'Class;
-                         Colour   : Lui.Colours.Colour_Type)
+   overriding procedure Set_Color
+     (Renderer : in out Cairo_Renderer;
+      Color    : Lui.Colors.Color_Type)
    is
       use Glib;
-      R : constant Gdouble := Gdouble (Colour.Red);
-      G : constant Gdouble := Gdouble (Colour.Green);
-      B : constant Gdouble := Gdouble (Colour.Blue);
-      A : constant Gdouble := Gdouble (Colour.Alpha);
+      R : constant Gdouble := Gdouble (Color.Red);
+      G : constant Gdouble := Gdouble (Color.Green);
+      B : constant Gdouble := Gdouble (Color.Blue);
+      A : constant Gdouble := Gdouble (Color.Alpha);
    begin
       if A < 1.0 then
          Cairo.Set_Source_Rgba (Renderer.Context, R, G, B, A);
       else
          Cairo.Set_Source_Rgba (Renderer.Context, R, G, B, A);
       end if;
-   end Set_Colour;
+   end Set_Color;
 
-   ------------------------------
-   -- Set_Current_Render_Layer --
-   ------------------------------
+   --------------
+   -- Set_Font --
+   --------------
 
-   overriding procedure Set_Current_Render_Layer
+   overriding procedure Set_Font
      (Renderer : in out Cairo_Renderer;
-      Layer    : Lui.Rendering.Render_Layer)
+      Name     : String;
+      Size     : Real;
+      Bold     : Boolean := False;
+      Italic   : Boolean := False)
    is
    begin
-      Renderer.Current_Layer := Layer;
-   end Set_Current_Render_Layer;
+      Cairo.Select_Font_Face
+        (Cr     => Renderer.Context,
+         Family => Name,
+         Slant  =>
+           (if Italic
+            then Cairo.Cairo_Font_Slant_Italic
+            else Cairo.Cairo_Font_Slant_Normal),
+         Weight =>
+           (if Bold
+            then Cairo.Cairo_Font_Weight_Bold
+            else Cairo.Cairo_Font_Weight_Normal));
+      Cairo.Set_Font_Size (Renderer.Context, Glib.Gdouble (Size));
+   end Set_Font;
 
    --------------------
    -- Set_Line_Width --
    --------------------
 
-   procedure Set_Line_Width (Renderer : Cairo_Renderer'Class;
-                             Width    : Natural)
+   overriding procedure Set_Line_Width
+     (Renderer : in out Cairo_Renderer;
+      Width    : Positive_Real)
    is
    begin
       Cairo.Set_Line_Width (Renderer.Context,
                             Width => Glib.Gdouble (Width));
    end Set_Line_Width;
-
-     ----------------
-     -- Set_Origin --
-     ----------------
-
-   overriding
-   procedure Set_Origin
-     (Renderer : in out Cairo_Renderer;
-      X, Y     : in     Integer)
-   is
-   begin
-      Renderer.Origin_X := X;
-      Renderer.Origin_Y := Y;
-   end Set_Origin;
 
    ------------------
    -- Show_Gadgets --
@@ -1463,16 +1453,15 @@ package body Lui.Gtk_UI is
 
    procedure Show_Model
      (Context       : Cairo.Cairo_Context;
-      Layer         : Lui.Rendering.Render_Layer;
+      Layer         : Render_Layer;
       Model         : Lui.Models.Object_Model)
    is
-      use type Lui.Rendering.Render_Layer;
+      use type Render_Layer;
    begin
       Renderer.Context := Context;
-      Renderer.Current_Layer := Layer;
       Cairo.Save (Context);
-      if Layer = Lui.Rendering.Render_Layer'First then
-         Set_Colour (Renderer, Model.Background);
+      if Layer = Render_Layer'First then
+         Set_Color (Renderer, Model.Background);
          Cairo.Set_Operator (Context, Cairo.Cairo_Operator_Source);
       else
          Cairo.Set_Operator (Context, Cairo.Cairo_Operator_Clear);
@@ -1481,7 +1470,7 @@ package body Lui.Gtk_UI is
       Cairo.Paint (Context);
       Cairo.Restore (Context);
 
-      Model.Render (Renderer);
+      Model.Render (Renderer, Layer);
    end Show_Model;
 
    ----------------
@@ -1601,6 +1590,23 @@ package body Lui.Gtk_UI is
       Lui.Handles.Set_Current (State);
    end Start;
 
+   ----------
+   -- Text --
+   ----------
+
+   overriding procedure Text
+     (Renderer : in out Cairo_Renderer;
+      X, Y     : Integer;
+      Value    : String)
+   is
+   begin
+      Cairo.Move_To
+        (Renderer.Context,
+         Glib.Gdouble (X),
+         Glib.Gdouble (Y));
+      Cairo.Show_Text (Renderer.Context, Value);
+   end Text;
+
    ---------------------
    -- Timeout_Handler --
    ---------------------
@@ -1615,14 +1621,16 @@ package body Lui.Gtk_UI is
                         State.Models.Slots.Element (I);
          begin
             if Slot.Model.Is_Active then
-               Slot.Model.Idle_Update (Updated);
-               if Slot.Model.Queued_Render or else Updated then
-                  Render_Model_Layers
-                    (Slot.Model, Slot.Layers,
-                     Glib.Gdouble (Slot.Width),
-                     Glib.Gdouble (Slot.Height));
-                  Slot.Widget.Queue_Draw;
-               end if;
+               Slot.Model.Update_Models;
+               Updated :=
+                 Render_Model_Layers
+                   (Slot.Model, Slot.Layers,
+                    Glib.Gdouble (Slot.Width),
+                    Glib.Gdouble (Slot.Height));
+            end if;
+
+            if Updated then
+               Slot.Widget.Queue_Draw;
             end if;
          end;
       end loop;

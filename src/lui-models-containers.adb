@@ -13,16 +13,16 @@ package body Lui.Models.Containers is
    end Add;
 
    -------------------------
-   -- Child_Border_Colour --
+   -- Child_Border_Color --
    -------------------------
 
-   function Child_Border_Colour
+   function Child_Border_Color
      (Model : Root_Container_Model'Class)
-      return Lui.Colours.Colour_Type
+      return Lui.Colors.Color_Type
    is
    begin
-      return Model.Child_Border_Colour;
-   end Child_Border_Colour;
+      return Model.Child_Border_Color;
+   end Child_Border_Color;
 
    ------------------------
    -- Child_Border_Width --
@@ -118,7 +118,7 @@ package body Lui.Models.Containers is
                Y      => Child.Y - Border,
                W      => Child.Width + 2 * Border,
                H      => Child.Height + 2 * Border,
-               Colour => Item.Child_Border_Colour,
+               Color => Item.Child_Border_Color,
                Filled => False);
          end if;
          Child.Before_Render (Renderer);
@@ -148,11 +148,11 @@ package body Lui.Models.Containers is
 
    procedure Set_Child_Border_Style
      (Model  : in out Root_Container_Model'Class;
-      Colour : Lui.Colours.Colour_Type;
+      Color : Lui.Colors.Color_Type;
       Width  : Natural)
    is
    begin
-      Model.Child_Border_Colour := Colour;
+      Model.Child_Border_Color := Color;
       Model.Child_Border_Width := Width;
    end Set_Child_Border_Style;
 

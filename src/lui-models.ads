@@ -3,7 +3,7 @@ private with Ada.Containers.Doubly_Linked_Lists;
 private with Ada.Containers.Vectors;
 private with Ada.Strings.Unbounded;
 
-with Lui.Colours;
+with Lui.Colors;
 with Lui.Gadgets;
 with Lui.Rendering;
 with Lui.Tables;
@@ -24,7 +24,7 @@ package Lui.Models is
    procedure Initialise
      (Item              : in out Root_Object_Model;
       Name              : in     String;
-      Last_Render_Layer : Lui.Rendering.Render_Layer := 1;
+      Last_Render_Layer : Render_Layer := 1;
       Tables            : Lui.Tables.Array_Of_Model_Tables :=
         Lui.Tables.No_Tables;
       Gadgets           : Lui.Gadgets.Array_Of_Gadgets :=
@@ -36,7 +36,7 @@ package Lui.Models is
 
    function Last_Render_Layer
      (Model : Root_Object_Model'Class)
-      return Lui.Rendering.Render_Layer;
+      return Render_Layer;
 
    procedure Set_Name (Item : in out Root_Object_Model'Class;
                        Name : String);
@@ -100,11 +100,6 @@ package Lui.Models is
                           X, Y : Natural)
                           return String
                           is ("");
-
-   function Select_XY (Item : in out Root_Object_Model;
-                       X, Y : Natural)
-                       return Object_Model
-   is (null);
 
    procedure Select_XY (Item : not null access Root_Object_Model;
                         X, Y : Natural)
@@ -204,21 +199,28 @@ package Lui.Models is
      (Model : in out Root_Object_Model)
    is null;
 
-   function Handle_Update
-     (Model : in out Root_Object_Model)
-      return Boolean
-   is (Model.Active_Transition);
-   --  Return True if model was changed by this update
+   procedure Update
+     (Model   : in out Root_Object_Model)
+   is null;
 
-   procedure Idle_Update
-     (Model   : in out Root_Object_Model'Class;
-      Updated : out Boolean);
+   procedure Update_Models
+     (Root : in out Root_Object_Model'Class);
 
    function Render_Layer_Changed
+     (Model : Root_Object_Model'Class;
+      Layer : Render_Layer)
+      return Boolean;
+
+   procedure Set_Render_Layer_Changed
      (Model : in out Root_Object_Model'Class;
-      Layer : Lui.Rendering.Render_Layer)
-      return Boolean
-   is (True);
+      Layer : Render_Layer);
+
+   procedure Set_Changed
+     (Model : in out Root_Object_Model'Class);
+
+   procedure Clear_Render_Layer_Changed
+     (Model : in out Root_Object_Model'Class;
+      Layer : Render_Layer);
 
    function Property_Count (Item : Root_Object_Model) return Natural;
    function Property_Name (Item : Root_Object_Model;
@@ -248,19 +250,19 @@ package Lui.Models is
 
    procedure Set_Background
      (Item : in out Root_Object_Model'Class;
-      Colour : Lui.Colours.Colour_Type);
+      Color : Lui.Colors.Color_Type);
 
    function Background
      (Item : Root_Object_Model)
-      return Lui.Colours.Colour_Type;
+      return Lui.Colors.Color_Type;
 
    procedure Set_Border
      (Item : in out Root_Object_Model'Class;
-      Colour : Lui.Colours.Colour_Type);
+      Color : Lui.Colors.Color_Type);
 
    function Border
      (Item : Root_Object_Model)
-      return Lui.Colours.Colour_Type;
+      return Lui.Colors.Color_Type;
 
    function Width (Item : Root_Object_Model) return Natural;
    function Height (Item : Root_Object_Model) return Natural;
@@ -275,7 +277,8 @@ package Lui.Models is
 
    procedure Render
      (Model    : in out Root_Object_Model;
-      Renderer : in out Lui.Rendering.Root_Renderer'Class)
+      Renderer : in out Lui.Rendering.Root_Renderer'Class;
+      Layer    : Render_Layer)
    is abstract;
 
    procedure Queue_Render (Model : in out Root_Object_Model);
@@ -323,24 +326,27 @@ private
    package Inline_Model_Lists is
      new Ada.Containers.Doubly_Linked_Lists (Inline_Model_Entry);
 
+   type Layer_Changed_Flags is
+     array (Render_Layer) of Boolean;
+
    type Root_Object_Model is abstract new Root_UI_Element with
       record
          Name              : Ada.Strings.Unbounded.Unbounded_String;
          Parent            : Object_Model;
-         Last_Render_Layer : Lui.Rendering.Render_Layer;
+         Last_Render_Layer : Render_Layer;
          First             : Boolean := True;
          Active            : Boolean := False;
+         Layer_Changed     : Layer_Changed_Flags := (others => True);
          Properties        : Property_Vectors.Vector;
-         X, Y              : Integer := 0;
-         Width, Height     : Natural := 0;
+         Layout            : Layout_Rectangle := (0, 0, 1, 1);
          Eye_X, Eye_Y      : Real := 0.0;
          Eye_Z             : Real := 1.0;
          Rotated           : Boolean := False;
          X_Rotation        : Real := 0.0;
          Y_Rotation        : Real := 0.0;
          Z_Rotation        : Real := 0.0;
-         Background        : Lui.Colours.Colour_Type := Lui.Colours.Black;
-         Border            : Lui.Colours.Colour_Type := Lui.Colours.Black;
+         Background        : Lui.Colors.Color_Type := Lui.Colors.Black;
+         Border            : Lui.Colors.Color_Type := Lui.Colors.Black;
          Inline_Models     : Inline_Model_Lists.List;
          Tables            : access Lui.Tables.Array_Of_Model_Tables;
          Gadgets           : access Lui.Gadgets.Array_Of_Gadgets;
@@ -367,6 +373,12 @@ private
 
    function Is_Active (Model : Root_Object_Model) return Boolean
    is (Model.Active);
+
+   function Render_Layer_Changed
+     (Model : Root_Object_Model'Class;
+      Layer : Render_Layer)
+      return Boolean
+   is (Model.Layer_Changed (Layer));
 
    package Object_Model_Vectors is
      new Ada.Containers.Vectors (Positive, Object_Model);

@@ -1,16 +1,16 @@
-package body Lui.Colours is
+package body Lui.Colors is
 
    -----------------
    -- Apply_Alpha --
    -----------------
 
    function Apply_Alpha
-     (Colour : Colour_Type;
+     (Color : Color_Type;
       Alpha  : Unit_Real)
-      return Colour_Type
+      return Color_Type
    is
    begin
-      return Result : Colour_Type := Colour do
+      return Result : Color_Type := Color do
          Result.Alpha := Alpha;
       end return;
    end Apply_Alpha;
@@ -20,26 +20,26 @@ package body Lui.Colours is
    --------------
 
    function Brighten
-     (Colour : Colour_Type;
+     (Color : Color_Type;
       Factor : Unit_Real)
-      return Colour_Type
+      return Color_Type
    is
       function Apply (X : Unit_Real) return Unit_Real
       is (X + (1.0 - X) * Factor);
 
    begin
-      return (Apply (Colour.Red), Apply (Colour.Green), Apply (Colour.Blue),
-              Colour.Alpha);
+      return (Apply (Color.Red), Apply (Color.Green), Apply (Color.Blue),
+              Color.Alpha);
    end Brighten;
 
    ---------------
-   -- To_Colour --
+   -- To_Color --
    ---------------
 
-   function To_Colour (Red, Green, Blue : Colour_Byte) return Colour_Type is
+   function To_Color (Red, Green, Blue : Color_Byte) return Color_Type is
    begin
       return (Real (Red) / 255.0, Real (Green) / 255.0, Real (Blue) / 255.0,
               1.0);
-   end To_Colour;
+   end To_Color;
 
-end Lui.Colours;
+end Lui.Colors;

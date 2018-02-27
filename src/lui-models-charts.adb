@@ -2,7 +2,7 @@ with Lui.Elementary_Functions;
 
 package body Lui.Models.Charts is
 
-   Colour_Scheme : constant array (Natural range <>) of Natural :=
+   Color_Scheme : constant array (Natural range <>) of Natural :=
                      (0 => 16#4D4D4D#,
                       1 => 16#5DA5DA#,
                       2 => 16#FAA43A#,
@@ -13,9 +13,9 @@ package body Lui.Models.Charts is
                       7 => 16#DECF3F#,
                       8 => 16#F15854#);
 
-   function Get_Colour
+   function Get_Color
      (Series : Chart_Series)
-      return Lui.Colours.Colour_Type;
+      return Lui.Colors.Color_Type;
 
    procedure Calculate_Boundary
      (Model                 : in out Chart_Model'Class;
@@ -111,26 +111,26 @@ package body Lui.Models.Charts is
    end Calculate_Boundary;
 
    ----------------
-   -- Get_Colour --
+   -- Get_Color --
    ----------------
 
-   function Get_Colour
+   function Get_Color
      (Series : Chart_Series)
-      return Lui.Colours.Colour_Type
+      return Lui.Colors.Color_Type
    is
-      use Lui.Colours;
+      use Lui.Colors;
       Value : Natural :=
-                Colour_Scheme (Natural (Series) mod Colour_Scheme'Length);
-      R, G, B : Colour_Byte;
+                Color_Scheme (Natural (Series) mod Color_Scheme'Length);
+      R, G, B : Color_Byte;
    begin
-      B := Colour_Byte (Value mod 256);
+      B := Color_Byte (Value mod 256);
       Value := Value / 256;
-      G := Colour_Byte (Value mod 256);
+      G := Color_Byte (Value mod 256);
       Value := Value / 256;
-      R := Colour_Byte (Value mod 256);
+      R := Color_Byte (Value mod 256);
       Value := Value / 256;
-      return To_Colour (R, G, B);
-   end Get_Colour;
+      return To_Color (R, G, B);
+   end Get_Color;
 
    ----------------
    -- Initialise --
@@ -139,7 +139,7 @@ package body Lui.Models.Charts is
    overriding procedure Initialise
      (Chart             : in out Chart_Model;
       Name              : in     String;
-      Last_Render_Layer : Lui.Rendering.Render_Layer := 1;
+      Last_Render_Layer : Render_Layer := 1;
       Tables            : Lui.Tables.Array_Of_Model_Tables :=
         Lui.Tables.No_Tables;
       Gadgets           : Lui.Gadgets.Array_Of_Gadgets :=
@@ -148,7 +148,7 @@ package body Lui.Models.Charts is
    begin
       Root_Object_Model (Chart).Initialise
         (Name, Last_Render_Layer, Tables, Gadgets);
-      Chart.Background := Lui.Colours.White;
+      Chart.Background := Lui.Colors.White;
    end Initialise;
 
    ------------------
@@ -252,7 +252,7 @@ package body Lui.Models.Charts is
          X2 : constant Integer := To_Screen_X (Max_X) + 10;
          Y2 : constant Integer := To_Screen_Y1 (0.0);
       begin
-         Renderer.Draw_Line (X1, Y1, X2, Y2, Lui.Colours.Black);
+         Renderer.Draw_Line (X1, Y1, X2, Y2, Lui.Colors.Black);
       end;
 
       declare
@@ -263,7 +263,7 @@ package body Lui.Models.Charts is
             Renderer.Draw_Line
               (To_Screen_X (Tick_X), To_Screen_Y1 (0.0),
                To_Screen_X (Tick_X), To_Screen_Y1 (0.0) + 5,
-               Lui.Colours.Black);
+               Lui.Colors.Black);
             Tick_X := Tick_X + Tick;
          end loop;
       end;
@@ -273,7 +273,7 @@ package body Lui.Models.Charts is
          Y1     => To_Screen_Y1 (Min_Y1),
          X2     => To_Screen_X (0.0),
          Y2     => To_Screen_Y1 (Max_Y1),
-         Colour => Lui.Colours.Black);
+         Color => Lui.Colors.Black);
 
       declare
          Tick   : constant Real := Major_Tick (Min_Y1, Max_Y1);
@@ -283,12 +283,12 @@ package body Lui.Models.Charts is
             Renderer.Draw_Line
               (To_Screen_X (0.0) - 5, To_Screen_Y1 (Tick_Y),
                To_Screen_X (0.0), To_Screen_Y1 (Tick_Y),
-               Lui.Colours.Black);
+               Lui.Colors.Black);
             Renderer.Draw_String
               (X      => 10,
                Y      => To_Screen_Y1 (Tick_Y),
                Size   => 10,
-               Colour => Lui.Colours.Black,
+               Color => Lui.Colors.Black,
                Text   => Approximate_Image (Tick_Y));
             Tick_Y := Tick_Y + Tick;
          end loop;
@@ -307,18 +307,18 @@ package body Lui.Models.Charts is
                Y1     => To_Screen_Y2 (Min_Y2),
                X2     => X,
                Y2     => To_Screen_Y2 (Max_Y2),
-               Colour => Lui.Colours.Black);
+               Color => Lui.Colors.Black);
 
             while Tick_Y <= Max_Y2 loop
                Renderer.Draw_Line
                  (X, To_Screen_Y2 (Tick_Y),
                   X + 5, To_Screen_Y2 (Tick_Y),
-                  Lui.Colours.Black);
+                  Lui.Colors.Black);
                Renderer.Draw_String
                  (X      => X + 10,
                   Y      => To_Screen_Y2 (Tick_Y) + 5,
                   Size   => 10,
-                  Colour => Lui.Colours.Black,
+                  Color => Lui.Colors.Black,
                   Text   => Approximate_Image (Tick_Y));
                Tick_Y := Tick_Y + Tick;
             end loop;
@@ -328,7 +328,7 @@ package body Lui.Models.Charts is
       for I in 1 .. Item.Series.Last_Index loop
          declare
             Series : Series_Info renames Item.Series (I);
-            Colour : constant Lui.Colours.Colour_Type := Get_Colour (I);
+            Color : constant Lui.Colors.Color_Type := Get_Color (I);
          begin
             case Series.Series_Chart_Type is
                when Line =>
@@ -350,14 +350,14 @@ package body Lui.Models.Charts is
                               Y1     => To_Screen_Y2 (Y1),
                               X2     => To_Screen_X (X2),
                               Y2     => To_Screen_Y2 (Y2),
-                              Colour => Colour);
+                              Color => Color);
                         else
                            Renderer.Draw_Line
                              (X1     => To_Screen_X (X1),
                               Y1     => To_Screen_Y1 (Y1),
                               X2     => To_Screen_X (X2),
                               Y2     => To_Screen_Y1 (Y2),
-                              Colour => Colour);
+                              Color => Color);
                         end if;
                      end loop;
                   end;
@@ -390,7 +390,7 @@ package body Lui.Models.Charts is
                               Y      => Integer'Min (Y1, Y2),
                               W      => Screen_Bar_Width,
                               H      => abs (Y2 - Y1),
-                              Colour => Colour,
+                              Color => Color,
                               Filled => True);
                         end;
                      end loop;
@@ -407,7 +407,7 @@ package body Lui.Models.Charts is
                     else To_String (Item.Name));
       begin
          Renderer.Draw_String
-           (10, 10, 10, Lui.Colours.Black, Title);
+           (10, 10, 10, Lui.Colors.Black, Title);
       end;
 
    end Render;
