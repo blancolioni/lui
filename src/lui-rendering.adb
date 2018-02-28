@@ -39,10 +39,11 @@ package body Lui.Rendering is
 
    procedure Set_Color
      (Renderer : in out Root_Renderer'Class;
-      R, G, B  : Unit_Real)
+      R, G, B  : Unit_Real;
+      Alpha    : Unit_Real := 1.0)
    is
    begin
-      Renderer.Set_Color ((R, G, B, 1.0));
+      Renderer.Set_Color ((R, G, B, Alpha));
    end Set_Color;
 
    --------------------

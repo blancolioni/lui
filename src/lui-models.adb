@@ -5,6 +5,21 @@ with Lui.Handles;
 
 package body Lui.Models is
 
+   type Root_Model_Record is
+     new Root_Object_Model with null record;
+
+   overriding procedure Render
+     (Model    : in out Root_Model_Record;
+      Renderer : in out Lui.Rendering.Root_Renderer'Class;
+      Layer    : Render_Layer)
+   is null;
+
+   Root_Model : Object_Model;
+
+   --------------
+   -- Activate --
+   --------------
+
    procedure Activate (Model : in out Root_Object_Model) is
    begin
       Model.Active := True;
@@ -27,62 +42,63 @@ package body Lui.Models is
    ----------------------
 
    procedure Add_Inline_Model
-     (To_Model      : not null access Root_Object_Model'Class;
-      Width         : Positive;
-      Height        : Positive;
-      Model         : not null access Root_Object_Model'Class;
-      Attach_Left   : Boolean := False;
-      Attach_Right  : Boolean := False;
-      Attach_Top    : Boolean := False;
-      Attach_Bottom : Boolean := False)
-   is
-   begin
-      To_Model.Add_Inline_Model
-        (Anchor => (Left => Attach_Left, Right => Attach_Right,
-                    Top => Attach_Top, Bottom => Attach_Bottom),
-         W      => Width,
-         H      => Height,
-         Model  => Model);
-   end Add_Inline_Model;
-
-   ----------------------
-   -- Add_Inline_Model --
-   ----------------------
-
-   procedure Add_Inline_Model
-     (To_Model : not null access Root_Object_Model'Class;
-      Anchor   : Model_Anchor;
-      W, H     : Positive;
-      Model    : not null access Root_Object_Model'Class)
+     (To_Model          : not null access Root_Object_Model'Class;
+      Anchor            : Model_Anchor;
+      Resizeable_Width  : Boolean;
+      Resizeable_Height : Boolean;
+      W, H              : Positive;
+      Model             : not null access Root_Object_Model'Class)
    is
    begin
       To_Model.Inline_Models.Append
-        ((False, Anchor, (0, 0, W, H), Model));
+        (Inline_Model_Entry'
+           (Resizeable_Width  => Resizeable_Width,
+            Resizeable_Height => Resizeable_Height,
+            Anchor            => Anchor,
+            Model             => Model));
       Model.Layout.Width := W;
       Model.Layout.Height := H;
       Model.Parent := Object_Model (To_Model);
+      Model.Anchor := Anchor;
+      Model.Resizeable_Width := Resizeable_Width;
+      Model.Resizeable_Height := Resizeable_Height;
+
+      Lui.Handles.Current_UI.On_Model_Added (Model);
+
       To_Model.Queue_Render;
    end Add_Inline_Model;
 
    ----------------------
-   -- Add_Inline_Model --
+   -- Add_Offset_Model --
    ----------------------
 
-   procedure Add_Inline_Model
-     (To_Model : not null access Root_Object_Model'Class;
-      Layout   : Layout_Rectangle;
-      Model    : not null access Root_Object_Model'Class)
+   procedure Add_Offset_Model
+     (To_Model        : not null access Root_Object_Model'Class;
+      Model           : not null access Root_Object_Model'Class;
+      Left_Offset     : Integer := 0;
+      Top_Offset      : Integer := 0;
+      Right_Offset    : Integer := 0;
+      Bottom_Offset   : Integer := 0)
    is
+      Anchor : constant Model_Anchor :=
+                 Model_Anchor'
+                   (Left          => True,
+                    Top           => True,
+                    Right         => True,
+                    Bottom        => True,
+                    Left_Offset   => Left_Offset,
+                    Top_Offset    => Top_Offset,
+                    Right_Offset  => Right_Offset,
+                    Bottom_Offset => Bottom_Offset);
    begin
-      To_Model.Inline_Models.Append
-        ((Static => False,
-          Anchor => (others => False),
-          Layout => Layout,
-          Model  => Model));
-      Model.Layout := Layout;
-      Model.Parent := Object_Model (To_Model);
-      To_Model.Queue_Render;
-   end Add_Inline_Model;
+      To_Model.Add_Inline_Model
+        (Anchor            => Anchor,
+         Resizeable_Width  => True,
+         Resizeable_Height => True,
+         W                 => 1,
+         H                 => 1,
+         Model             => Model);
+   end Add_Offset_Model;
 
    ------------------
    -- Add_Property --
@@ -124,63 +140,39 @@ package body Lui.Models is
       Item.Add_Property (Name, Trim (Integer'Image (Value), Left));
    end Add_Property;
 
+   ----------------------
+   -- Add_Static_Model --
+   ----------------------
+
+   procedure Add_Static_Model
+     (To_Model      : not null access Root_Object_Model'Class;
+      Width         : Positive;
+      Height        : Positive;
+      Model         : not null access Root_Object_Model'Class;
+      Attach_Left   : Boolean := False;
+      Attach_Right  : Boolean := False;
+      Attach_Top    : Boolean := False;
+      Attach_Bottom : Boolean := False)
+   is
+   begin
+      To_Model.Add_Inline_Model
+        (Anchor => (Left => Attach_Left, Right => Attach_Right,
+                    Top    => Attach_Top, Bottom => Attach_Bottom,
+                    others => 0),
+         Resizeable_Width  => False,
+         Resizeable_Height => False,
+         W                 => Width,
+         H      => Height,
+         Model  => Model);
+   end Add_Static_Model;
+
    ------------------
    -- After_Render --
    ------------------
 
    procedure After_Render
-     (Item     : in out Root_Object_Model;
-      Renderer : in out Lui.Rendering.Root_Renderer'Class)
-   is
-      function Get_Start
-        (Parent_Length, Child_Length : Positive;
-         Anchor_Start, Anchor_End    : Boolean)
-         return Integer
-      is (if not (Anchor_Start xor Anchor_End)
-          then Parent_Length / 2 - Child_Length / 2
-          elsif Anchor_End
-          then Parent_Length - Child_Length
-          else 0);
-
-   begin
-      for Inline_Model of Item.Inline_Models loop
-         declare
-            Child   : constant access Root_Object_Model'Class :=
-                        Inline_Model.Model;
-            Anchor  : constant Model_Anchor := Inline_Model.Anchor;
-            Child_X : constant Integer :=
-                        Get_Start (Item.Width, Child.Width,
-                                   Anchor.Left, Anchor.Right);
-            Child_Y : constant Integer :=
-                        Get_Start (Item.Height, Child.Height,
-                                   Anchor.Top, Anchor.Bottom);
-            Rec     : constant Layout_Rectangle :=
-                        (if Inline_Model.Static
-                         then Inline_Model.Layout
-                         else (Child_X, Child_Y, Child.Width, Child.Height));
-         begin
-            Renderer.Set_Color (Child.Background);
-            Renderer.Rectangle (Rec, True);
-
-            Renderer.Set_Color (Child.Border);
-            Renderer.Rectangle (Rec, False);
-
-            Renderer.Push_Viewport
-              ((Child_X, Child_Y, Child.Width, Child.Height));
-
-            Child.Before_Render (Renderer);
-
-            for I in 1 .. Child.Last_Render_Layer loop
-               Child.Render (Renderer, I);
-            end loop;
-
-            Child.After_Render (Renderer);
-
-            Renderer.Pop_Viewport;
-
-         end;
-      end loop;
-   end After_Render;
+     (Item     : in out Root_Object_Model)
+   is null;
 
    ------------
    -- Append --
@@ -211,10 +203,8 @@ package body Lui.Models is
    -------------------
 
    procedure Before_Render
-     (Item     : in out Root_Object_Model;
-      Renderer : in out Lui.Rendering.Root_Renderer'Class)
+     (Item     : in out Root_Object_Model)
    is
-      pragma Unreferenced (Renderer);
    begin
       Item.Queued_Render := False;
       if Item.Active_Transition then
@@ -464,9 +454,17 @@ package body Lui.Models is
         Lui.Gadgets.No_Gadgets)
    is
    begin
+      if Root_Model = null then
+         Root_Model := new Root_Model_Record;
+         Root_Model.Layout := (0, 0, 1, 1);
+      end if;
+
       Item.Name := Ada.Strings.Unbounded.To_Unbounded_String (Name);
       Item.Last_Render_Layer := Last_Render_Layer;
       Item.Background := Lui.Colors.Black;
+      Item.Parent := Root_Model;
+      Item.Anchor := (True, True, True, True, 0, 0, 0, 0);
+
       Item.Properties.Clear;
       Item.Tables :=
         new Lui.Tables.Array_Of_Model_Tables'(Tables);
@@ -727,6 +725,7 @@ package body Lui.Models is
       end if;
 
       Model.Parent := null;
+      Lui.Handles.Current_UI.On_Model_Removed (Model);
 
       From_Model.Queue_Render;
 
@@ -739,13 +738,50 @@ package body Lui.Models is
    ------------
 
    procedure Resize
-     (Item          : in out Root_Object_Model;
-      Width, Height : Natural)
+     (Model : in out Root_Object_Model)
    is
+      function Get_Start
+        (Parent_Length, Child_Length : Positive;
+         Anchor_Start, Anchor_End    : Boolean)
+         return Integer
+      is (if not (Anchor_Start xor Anchor_End)
+          then Parent_Length / 2 - Child_Length / 2
+          elsif Anchor_End
+          then Parent_Length - Child_Length
+          else 0);
+
    begin
-      Item.Layout.Width := Width;
-      Item.Layout.Height := Height;
-      Item.Layer_Changed := (others => True);
+
+      if Model.Resizeable_Width then
+         Model.Layout.X := Model.Anchor.Left_Offset;
+         Model.Layout.Width :=
+           Integer'Max
+             (Model.Parent.Width
+              - Model.Anchor.Right_Offset
+              - Model.Layout.X,
+              1);
+      else
+         Model.Layout.X :=
+           Get_Start (Model.Parent.Width, Model.Layout.Width,
+                      Model.Anchor.Left, Model.Anchor.Right);
+      end if;
+
+      if Model.Resizeable_Height then
+         Model.Layout.Y := Model.Anchor.Top_Offset;
+         Model.Layout.Height :=
+           Integer'Max
+             (Model.Parent.Height
+              - Model.Anchor.Bottom_Offset
+              - Model.Layout.Y,
+              1);
+      else
+         Model.Layout.Y :=
+           Get_Start (Model.Parent.Height, Model.Layout.Height,
+                      Model.Anchor.Top, Model.Anchor.Bottom);
+      end if;
+
+      Model.Layer_Changed := (others => True);
+
    end Resize;
 
    --------------
@@ -883,6 +919,18 @@ package body Lui.Models is
    begin
       Model.Layer_Changed (Layer) := True;
    end Set_Render_Layer_Changed;
+
+   ---------------------
+   -- Set_Screen_Size --
+   ---------------------
+
+   procedure Set_Screen_Size
+     (Width, Height : Natural)
+   is
+   begin
+      Root_Model.Layout.Width := Width;
+      Root_Model.Layout.Height := Height;
+   end Set_Screen_Size;
 
    ----------
    -- Show --

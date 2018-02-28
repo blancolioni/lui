@@ -74,8 +74,7 @@ package Lui.Models is
    function Eye_Y (Model : Root_Object_Model'Class) return Real;
    function Eye_Z (Model : Root_Object_Model'Class) return Real;
 
-   procedure Resize (Item          : in out Root_Object_Model;
-                     Width, Height : Natural);
+   procedure Resize (Model : in out Root_Object_Model);
 
    procedure Zoom (Item    : in out Root_Object_Model;
                    Z       : in     Integer;
@@ -112,16 +111,20 @@ package Lui.Models is
 
    type Model_Anchor is
       record
-         Left, Top, Right, Bottom : Boolean := False;
+         Left, Top, Right, Bottom    : Boolean := False;
+         Left_Offset, Top_Offset     : Integer := 0;
+         Right_Offset, Bottom_Offset : Integer := 0;
       end record;
 
    procedure Add_Inline_Model
-     (To_Model : not null access Root_Object_Model'Class;
-      Anchor   : Model_Anchor;
-      W, H     : Positive;
-      Model    : not null access Root_Object_Model'Class);
+     (To_Model          : not null access Root_Object_Model'Class;
+      Anchor            : Model_Anchor;
+      Resizeable_Width  : Boolean;
+      Resizeable_Height : Boolean;
+      W, H              : Positive;
+      Model             : not null access Root_Object_Model'Class);
 
-   procedure Add_Inline_Model
+   procedure Add_Static_Model
      (To_Model      : not null access Root_Object_Model'Class;
       Width         : Positive;
       Height        : Positive;
@@ -131,10 +134,13 @@ package Lui.Models is
       Attach_Top    : Boolean := False;
       Attach_Bottom : Boolean := False);
 
-   procedure Add_Inline_Model
-     (To_Model : not null access Root_Object_Model'Class;
-      Layout   : Layout_Rectangle;
-      Model    : not null access Root_Object_Model'Class);
+   procedure Add_Offset_Model
+     (To_Model        : not null access Root_Object_Model'Class;
+      Model           : not null access Root_Object_Model'Class;
+      Left_Offset     : Integer := 0;
+      Top_Offset      : Integer := 0;
+      Right_Offset    : Integer := 0;
+      Bottom_Offset   : Integer := 0);
 
    procedure Remove_Inline_Model
      (From_Model : in out Root_Object_Model'Class;
@@ -269,16 +275,17 @@ package Lui.Models is
      (Item : Root_Object_Model)
       return Lui.Colors.Color_Type;
 
+   function Layout_X (Item : Root_Object_Model) return Integer;
+   function Layout_Y (Item : Root_Object_Model) return Integer;
+
    function Width (Item : Root_Object_Model) return Natural;
    function Height (Item : Root_Object_Model) return Natural;
 
    procedure Before_Render
-     (Item     : in out Root_Object_Model;
-      Renderer : in out Lui.Rendering.Root_Renderer'Class);
+     (Item     : in out Root_Object_Model);
 
    procedure After_Render
-     (Item     : in out Root_Object_Model;
-      Renderer : in out Lui.Rendering.Root_Renderer'Class);
+     (Item     : in out Root_Object_Model);
 
    procedure Render
      (Model    : in out Root_Object_Model;
@@ -309,6 +316,9 @@ package Lui.Models is
       Target_X, Target_Y, Target_Z : Real;
       Length                       : Duration);
 
+   procedure Set_Screen_Size
+     (Width, Height : Natural);
+
 private
 
    type Property_Entry is
@@ -323,10 +333,10 @@ private
 
    type Inline_Model_Entry is
       record
-         Static : Boolean;
-         Anchor : Model_Anchor;
-         Layout : Layout_Rectangle;
-         Model  : access Root_Object_Model'Class;
+         Resizeable_Width  : Boolean;
+         Resizeable_Height : Boolean;
+         Anchor            : Model_Anchor;
+         Model             : access Root_Object_Model'Class;
       end record;
 
    package Inline_Model_Lists is
@@ -339,6 +349,9 @@ private
       record
          Name              : Ada.Strings.Unbounded.Unbounded_String;
          Parent            : Object_Model;
+         Anchor            : Model_Anchor;
+         Resizeable_Width  : Boolean := True;
+         Resizeable_Height : Boolean := True;
          Last_Render_Layer : Render_Layer;
          First             : Boolean := True;
          Active            : Boolean := False;
@@ -379,6 +392,12 @@ private
 
    function Is_Active (Model : Root_Object_Model) return Boolean
    is (Model.Active);
+
+   function Layout_X (Item : Root_Object_Model) return Integer
+   is (Item.Layout.X);
+
+   function Layout_Y (Item : Root_Object_Model) return Integer
+   is (Item.Layout.Y);
 
    function Render_Layer_Changed
      (Model : Root_Object_Model'Class;

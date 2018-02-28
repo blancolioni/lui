@@ -38,7 +38,8 @@ package Lui.Rendering is
 
    procedure Set_Color
      (Renderer : in out Root_Renderer'Class;
-      R, G, B  : Unit_Real);
+      R, G, B  : Unit_Real;
+      Alpha    : Unit_Real := 1.0);
 
    procedure Set_Font
      (Renderer : in out Root_Renderer;

@@ -11,6 +11,16 @@ package Lui.Handles is
       Model : Lui.Models.Object_Model)
    is abstract;
 
+   procedure On_Model_Added
+     (UI     : in out Root_UI_Handle;
+      Model  : not null access Lui.Models.Root_Object_Model'Class)
+   is abstract;
+
+   procedure On_Model_Removed
+     (UI     : in out Root_UI_Handle;
+      Model  : not null access Lui.Models.Root_Object_Model'Class)
+   is abstract;
+
    procedure Push_Model
      (Handle : in out Root_UI_Handle'Class;
       Model  : Lui.Models.Object_Model);

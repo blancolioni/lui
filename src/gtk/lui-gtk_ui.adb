@@ -13,7 +13,6 @@ with Glib.Object;
 
 with Gdk.Event;
 with Gdk.Types.Keysyms;
-with Gdk.Window;
 
 with Gtk.Box;
 with Gtk.Button;
@@ -48,12 +47,20 @@ package body Lui.Gtk_UI is
    type Surface_Render_Layers is
      array (Render_Layer) of Cairo.Cairo_Surface;
 
+   type Model_Layer_Record is
+      record
+         Model  : Lui.Models.Object_Model;
+         Layers : Surface_Render_Layers;
+      end record;
+
+   package Model_Layer_Lists is
+     new Ada.Containers.Doubly_Linked_Lists (Model_Layer_Record);
+
    type Model_Object_Record is
      new Glib.Object.GObject_Record with
       record
-         Model   : Lui.Models.Object_Model;
          Widget  : Gtk.Drawing_Area.Gtk_Drawing_Area;
-         Layers  : Surface_Render_Layers;
+         Models  : Model_Layer_Lists.List;
          Width   : Glib.Gint;
          Height  : Glib.Gint;
       end record;
@@ -74,21 +81,10 @@ package body Lui.Gtk_UI is
    procedure Append (List  : in out Gtk_Active_Model_List;
                      Model : Lui.Models.Object_Model);
 
-   type Viewport_Record is
-      record
-         Context : Cairo.Cairo_Context;
-         Surface : Cairo.Cairo_Surface;
-         Layout  : Layout_Rectangle;
-      end record;
-
-   package Viewport_Stacks is
-     new Ada.Containers.Doubly_Linked_Lists (Viewport_Record);
-
    type Cairo_Renderer is
      new Lui.Rendering.Root_Renderer with
       record
          Context       : Cairo.Cairo_Context;
-         Viewports     : Viewport_Stacks.List;
       end record;
 
    overriding procedure Set_Font
@@ -165,14 +161,9 @@ package body Lui.Gtk_UI is
       Resource_Name : String)
       return Boolean;
 
-   Renderer : Cairo_Renderer;
-
-   function Render_Model_Layers
+   procedure Render_Model_Layers
      (Model   : Lui.Models.Object_Model;
-      Layers  : Surface_Render_Layers;
-      Width   : Glib.Gdouble;
-      Height  : Glib.Gdouble)
-      return Boolean;
+      Layers  : Surface_Render_Layers);
 
    procedure Render_Model
      (Model   : Lui.Models.Object_Model;
@@ -213,6 +204,14 @@ package body Lui.Gtk_UI is
    overriding procedure Show_Model
      (State : in out Root_UI_State;
       Model : in     Lui.Models.Object_Model);
+
+   overriding procedure On_Model_Added
+     (State  : in out Root_UI_State;
+      Model  : not null access Lui.Models.Root_Object_Model'Class);
+
+   overriding procedure On_Model_Removed
+     (State  : in out Root_UI_State;
+      Model  : not null access Lui.Models.Root_Object_Model'Class);
 
    type UI_State is access all Root_UI_State'Class;
 
@@ -361,12 +360,15 @@ package body Lui.Gtk_UI is
          Slot : constant Model_Object_Access :=
                   new Model_Object_Record'
                     (Glib.Object.GObject_Record with
-                     Model   => Model,
-                     Widget  => Page,
-                     Layers  => (others => Cairo.Null_Surface),
-                     Width   => 1,
-                     Height  => 1);
+                     Widget   => Page,
+                     Models   => Model_Layer_Lists.Empty_List,
+                     Width    => 1,
+                     Height   => 1);
       begin
+         Slot.Models.Append
+           (Model_Layer_Record'
+              (Model  => Model,
+               Layers => (others => Cairo.Null_Surface)));
          Slot.Initialize;
 
          Page.On_Draw
@@ -459,40 +461,49 @@ package body Lui.Gtk_UI is
       use type Cairo.Cairo_Surface;
       Slot : Model_Object_Record renames
                Model_Object_Record (Self.all);
-   begin
-      Slot.Width := Event.Width;
-      Slot.Height := Event.Height;
 
-      Ada.Text_IO.Put_Line
-        ("configure: " & Natural'Image (Natural (Slot.Width))
-         & Natural'Image (Natural (Slot.Height)));
+      procedure Resize
+        (Model  : Lui.Models.Object_Model;
+         Layers : in out Surface_Render_Layers);
 
-      for I in Render_Layer range
-        1 .. Slot.Model.Last_Render_Layer
-      loop
-         declare
-            Surface : Cairo.Cairo_Surface renames Slot.Layers (I);
-         begin
+      ------------
+      -- Resize --
+      ------------
+
+      procedure Resize
+        (Model  : Lui.Models.Object_Model;
+         Layers : in out Surface_Render_Layers)
+      is
+      begin
+
+         Model.Resize;
+
+         for Surface of Layers loop
+
             if Surface /= Cairo.Null_Surface then
                Cairo.Surface_Destroy (Surface);
             end if;
-            Surface :=
-              Gdk.Window.Create_Similar_Surface
-                (Slot.Widget.Get_Window,
-                 Cairo.Cairo_Content_Color_Alpha,
-                 Slot.Width, Slot.Height);
-         end;
-      end loop;
 
-      declare
-         Changed : constant Boolean :=
-                     Render_Model_Layers
-                       (Slot.Model, Slot.Layers,
-                        Glib.Gdouble (Slot.Width),
-                        Glib.Gdouble (Slot.Height));
-      begin
-         pragma Assert (Changed);
-      end;
+            Surface :=
+              Cairo.Image_Surface.Create
+                (Format => Cairo.Image_Surface.Cairo_Format_ARGB32,
+                 Width  => Glib.Gint (Model.Width),
+                 Height => Glib.Gint (Model.Height));
+         end loop;
+
+         Render_Model_Layers (Model, Layers);
+
+      end Resize;
+
+   begin
+      Slot.Width := Event.Width;
+      Slot.Height := Event.Height;
+      Lui.Models.Set_Screen_Size
+        (Natural (Event.Width), Natural (Event.Height));
+
+      for Model_Layers of Slot.Models loop
+         Resize (Model_Layers.Model, Model_Layers.Layers);
+      end loop;
 
       Slot.Widget.Grab_Focus;
 
@@ -684,10 +695,17 @@ package body Lui.Gtk_UI is
                Model_Object_Record (Self.all);
 
    begin
-      for I in Render_Layer range 1 .. Slot.Model.Last_Render_Layer loop
-         Cairo.Set_Source_Surface
-           (Cr, Slot.Layers (I), 0.0, 0.0);
-         Cairo.Paint (Cr);
+
+      for Model_Layer of Slot.Models loop
+         for Layer in
+           Render_Layer range 1 .. Model_Layer.Model.Last_Render_Layer
+         loop
+            Cairo.Set_Source_Surface
+              (Cr, Model_Layer.Layers (Layer),
+               Glib.Gdouble (Model_Layer.Model.Layout_X),
+               Glib.Gdouble (Model_Layer.Model.Layout_Y));
+            Cairo.Paint (Cr);
+         end loop;
       end loop;
       return True;
    end Expose_Model_Handler;
@@ -1044,6 +1062,49 @@ package body Lui.Gtk_UI is
       Select_Model (Model);
    end On_Model_Activation;
 
+   --------------------
+   -- On_Model_Added --
+   --------------------
+
+   overriding procedure On_Model_Added
+     (State  : in out Root_UI_State;
+      Model  : not null access Lui.Models.Root_Object_Model'Class)
+   is
+      use type Lui.Models.Object_Model;
+   begin
+      for Slot of State.Models.Slots loop
+         declare
+            Found : Boolean := False;
+         begin
+            for Model_Layer of Slot.Models loop
+               if Model_Layer.Model = Model.Parent_Model then
+                  Found := True;
+                  exit;
+               end if;
+            end loop;
+            if Found then
+               Slot.Models.Append
+                 (Model_Layer_Record'
+                    (Model  => Lui.Models.Object_Model (Model),
+                     Layers => (others => Cairo.Null_Surface)));
+               return;
+            end if;
+         end;
+      end loop;
+      raise Constraint_Error with
+        Model.Name & ": no parent found";
+
+   end On_Model_Added;
+
+   ----------------------
+   -- On_Model_Removed --
+   ----------------------
+
+   overriding procedure On_Model_Removed
+     (State  : in out Root_UI_State;
+      Model  : not null access Lui.Models.Root_Object_Model'Class)
+   is null;
+
    ----------------------
    -- On_Model_Changed --
    ----------------------
@@ -1101,26 +1162,27 @@ package body Lui.Gtk_UI is
 
    overriding procedure Pop_Viewport
      (Renderer : in out Cairo_Renderer)
-   is
-      Top     : constant Viewport_Record :=
-                  Renderer.Viewports.Last_Element;
-   begin
-      Renderer.Viewports.Delete_Last;
-
-      Cairo.Destroy (Renderer.Context);
-      Renderer.Context := Top.Context;
-
-      Cairo.Save (Renderer.Context);
-
-      Cairo.Set_Source_Surface
-        (Cr      => Renderer.Context,
-         Surface => Top.Surface,
-         X       => Glib.Gdouble (Top.Layout.X),
-         Y       => Glib.Gdouble (Top.Layout.Y));
-      Cairo.Paint (Renderer.Context);
-
-      Cairo.Surface_Destroy (Top.Surface);
-   end Pop_Viewport;
+   is null;
+--        Top     : constant Viewport_Record :=
+--                    Renderer.Viewports.Last_Element;
+--     begin
+--        Renderer.Viewports.Delete_Last;
+--
+--        Cairo.Destroy (Renderer.Context);
+--        Renderer.Context := Top.Context;
+--
+--        Cairo.Save (Renderer.Context);
+--
+--        Cairo.Set_Source_Surface
+--          (Cr      => Renderer.Context,
+--           Surface => Top.Surface,
+--           X       => Glib.Gdouble (Top.Layout.X),
+--           Y       => Glib.Gdouble (Top.Layout.Y));
+--        Cairo.Paint (Renderer.Context);
+--        Cairo.Restore (Renderer.Context);
+--
+--        Cairo.Surface_Destroy (Top.Surface);
+--     end Pop_Viewport;
 
    -------------------
    -- Push_Viewport --
@@ -1129,20 +1191,20 @@ package body Lui.Gtk_UI is
    overriding procedure Push_Viewport
      (Renderer : in out Cairo_Renderer;
       Viewport : Layout_Rectangle)
-   is
-      Surface : constant Cairo.Cairo_Surface :=
-                  Cairo.Image_Surface.Create
-                    (Format => Cairo.Image_Surface.Cairo_Format_ARGB32,
-                     Width  => Glib.Gint (Viewport.Width),
-                     Height => Glib.Gint (Viewport.Height));
-   begin
-      Renderer.Viewports.Append
-        (Viewport_Record'
-           (Context => Renderer.Context,
-            Surface => Surface,
-            Layout  => Viewport));
-      Renderer.Context := Cairo.Create (Surface);
-   end Push_Viewport;
+   is null;
+--        Surface : constant Cairo.Cairo_Surface :=
+--                    Cairo.Image_Surface.Create
+--                      (Format => Cairo.Image_Surface.Cairo_Format_ARGB32,
+--                       Width  => Glib.Gint (Viewport.Width),
+--                       Height => Glib.Gint (Viewport.Height));
+--     begin
+--        Renderer.Viewports.Append
+--          (Viewport_Record'
+--             (Context => Renderer.Context,
+--              Surface => Surface,
+--              Layout  => Viewport));
+--        Renderer.Context := Cairo.Create (Surface);
+--     end Push_Viewport;
 
    ---------------
    -- Rectangle --
@@ -1234,16 +1296,11 @@ package body Lui.Gtk_UI is
    -- Render_Model_Layers --
    -------------------------
 
-   function Render_Model_Layers
+   procedure Render_Model_Layers
      (Model   : Lui.Models.Object_Model;
-      Layers  : Surface_Render_Layers;
-      Width   : Glib.Gdouble;
-      Height  : Glib.Gdouble)
-      return Boolean
+      Layers  : Surface_Render_Layers)
    is
       use Lui.Rendering;
-
-      Changed : Boolean := False;
 
       procedure Render_Single_Model
         (M : Lui.Models.Object_Model);
@@ -1256,31 +1313,21 @@ package body Lui.Gtk_UI is
         (M : Lui.Models.Object_Model)
       is
       begin
-         M.Before_Render (Renderer);
+         M.Before_Render;
 
          for I in 1 .. M.Last_Render_Layer loop
             if M.Render_Layer_Changed (I) then
                Render_Model (M, Layers (I), I);
                M.Clear_Render_Layer_Changed (I);
-               Changed := True;
             end if;
          end loop;
-         M.After_Render (Renderer);
+         M.After_Render;
 
       end Render_Single_Model;
 
-      W : constant Natural := Natural (Width);
-      H : constant Natural := Natural (Height);
    begin
-      if W /= Model.Width or else H /= Model.Height then
-         Ada.Text_IO.Put_Line ("resize:" & W'Img & H'Img);
-         Model.Resize (W, H);
-         Changed := True;
-      end if;
 
       Render_Single_Model (Model);
-
-      Model.Scan_Inline_Models (Render_Single_Model'Access);
 
       if Model.Properties_Changed then
          for Gadget of Model.Gadgets loop
@@ -1312,8 +1359,6 @@ package body Lui.Gtk_UI is
             end loop;
          end if;
       end;
-
-      return Changed;
 
    end Render_Model_Layers;
 
@@ -1458,10 +1503,19 @@ package body Lui.Gtk_UI is
    is
       use type Render_Layer;
    begin
-      Renderer.Context := Context;
       Cairo.Save (Context);
       if Layer = Render_Layer'First then
-         Set_Color (Renderer, Model.Background);
+         declare
+            Bg : constant Lui.Colors.Color_Type := Model.Background;
+         begin
+            Cairo.Set_Source_Rgba
+              (Cr    => Context,
+               Red   => Glib.Gdouble (Bg.Red),
+               Green => Glib.Gdouble (Bg.Green),
+               Blue  => Glib.Gdouble (Bg.Blue),
+               Alpha => Glib.Gdouble (Bg.Alpha));
+         end;
+
          Cairo.Set_Operator (Context, Cairo.Cairo_Operator_Source);
       else
          Cairo.Set_Operator (Context, Cairo.Cairo_Operator_Clear);
@@ -1470,7 +1524,13 @@ package body Lui.Gtk_UI is
       Cairo.Paint (Context);
       Cairo.Restore (Context);
 
-      Model.Render (Renderer, Layer);
+      declare
+         Renderer : Cairo_Renderer;
+      begin
+         Renderer.Context := Context;
+         Model.Render (Renderer, Layer);
+      end;
+
    end Show_Model;
 
    ----------------
@@ -1576,7 +1636,8 @@ package body Lui.Gtk_UI is
    is
    begin
       State      := new Root_UI_State;
---        State.Timeout_Id :=
+      Lui.Handles.Set_Current (State);
+      --        State.Timeout_Id :=
 --          Glib.Main.Timeout_Add
 --            (Interval => 100,
 --             Func     => Timeout_Handler'Access);
@@ -1587,7 +1648,6 @@ package body Lui.Gtk_UI is
       Top.Activate;
       State.Active := Top;
       State.Models.Append (Top);
-      Lui.Handles.Set_Current (State);
    end Start;
 
    ----------
@@ -1614,24 +1674,24 @@ package body Lui.Gtk_UI is
    function Timeout_Handler return Boolean is
    begin
       State.Main.On_Idle;
+
       for I in 1 .. State.Models.Count loop
          declare
-            Updated : Boolean := False;
             Slot    : constant Model_Object_Access :=
                         State.Models.Slots.Element (I);
          begin
-            if Slot.Model.Is_Active then
-               Slot.Model.Update_Models;
-               Updated :=
-                 Render_Model_Layers
-                   (Slot.Model, Slot.Layers,
-                    Glib.Gdouble (Slot.Width),
-                    Glib.Gdouble (Slot.Height));
+
+            if not Slot.Models.Is_Empty
+              and then Slot.Models.First_Element.Model.Is_Active
+            then
+               for Model_Layer of Slot.Models loop
+                  Model_Layer.Model.Update_Models;
+                  Render_Model_Layers
+                    (Model_Layer.Model, Model_Layer.Layers);
+               end loop;
             end if;
 
-            if Updated then
-               Slot.Widget.Queue_Draw;
-            end if;
+            Slot.Widget.Queue_Draw;
          end;
       end loop;
       return True;
