@@ -954,9 +954,11 @@ package body Lui.Gtk_UI is
       use Glib;
       X : constant Integer := Integer (Event.Motion.X);
       Y : constant Integer := Integer (Event.Motion.Y);
+      M : constant Lui.Models.Object_Model :=
+            Model.Model_At (X, Y);
    begin
       if Event.Button.Button = 1 then
-         Model.Select_XY (X, Y);
+         M.Select_XY (X - M.Layout_X, Y - M.Layout_Y);
          W.Queue_Draw;
          return True;
       else
@@ -1093,17 +1095,7 @@ package body Lui.Gtk_UI is
       end loop;
       raise Constraint_Error with
         Model.Name & ": no parent found";
-
    end On_Model_Added;
-
-   ----------------------
-   -- On_Model_Removed --
-   ----------------------
-
-   overriding procedure On_Model_Removed
-     (State  : in out Root_UI_State;
-      Model  : not null access Lui.Models.Root_Object_Model'Class)
-   is null;
 
    ----------------------
    -- On_Model_Changed --
@@ -1113,6 +1105,40 @@ package body Lui.Gtk_UI is
    begin
       Select_Model (Model);
    end On_Model_Changed;
+
+   ----------------------
+   -- On_Model_Removed --
+   ----------------------
+
+   overriding procedure On_Model_Removed
+     (State  : in out Root_UI_State;
+      Model  : not null access Lui.Models.Root_Object_Model'Class)
+   is
+      use type Lui.Models.Object_Model;
+   begin
+      for Slot of State.Models.Slots loop
+         declare
+            use Model_Layer_Lists;
+            Position : Cursor := No_Element;
+         begin
+            for P in Slot.Models.Iterate loop
+               if Element (P).Model = Lui.Models.Object_Model (Model) then
+                  Position := P;
+                  exit;
+               end if;
+            end loop;
+            if Has_Element (Position) then
+               Slot.Models.Delete (Position);
+               for Model_Layer of Slot.Models loop
+                  Model_Layer.Model.Set_Changed;
+               end loop;
+               return;
+            end if;
+         end;
+      end loop;
+      raise Constraint_Error with
+        Model.Name & ": not found";
+   end On_Model_Removed;
 
    -------------
    -- Polygon --
@@ -1685,7 +1711,7 @@ package body Lui.Gtk_UI is
               and then Slot.Models.First_Element.Model.Is_Active
             then
                for Model_Layer of Slot.Models loop
-                  Model_Layer.Model.Update_Models;
+                  Model_Layer.Model.Update;
                   Render_Model_Layers
                     (Model_Layer.Model, Model_Layer.Layers);
                end loop;
