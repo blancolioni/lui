@@ -67,6 +67,9 @@ package body Lui.Gtk_UI is
 
    type Model_Object_Access is access all Model_Object_Record'Class;
 
+   procedure Resize
+     (Slot : in out Model_Object_Record'Class);
+
    package Model_Object_Vectors is
      new Ada.Containers.Vectors
        (Positive, Model_Object_Access);
@@ -462,48 +465,13 @@ package body Lui.Gtk_UI is
       Slot : Model_Object_Record renames
                Model_Object_Record (Self.all);
 
-      procedure Resize
-        (Model  : Lui.Models.Object_Model;
-         Layers : in out Surface_Render_Layers);
-
-      ------------
-      -- Resize --
-      ------------
-
-      procedure Resize
-        (Model  : Lui.Models.Object_Model;
-         Layers : in out Surface_Render_Layers)
-      is
-      begin
-
-         Model.Resize;
-
-         for Surface of Layers loop
-
-            if Surface /= Cairo.Null_Surface then
-               Cairo.Surface_Destroy (Surface);
-            end if;
-
-            Surface :=
-              Cairo.Image_Surface.Create
-                (Format => Cairo.Image_Surface.Cairo_Format_ARGB32,
-                 Width  => Glib.Gint (Model.Width),
-                 Height => Glib.Gint (Model.Height));
-         end loop;
-
-         Render_Model_Layers (Model, Layers);
-
-      end Resize;
-
    begin
       Slot.Width := Event.Width;
       Slot.Height := Event.Height;
       Lui.Models.Set_Screen_Size
         (Natural (Event.Width), Natural (Event.Height));
 
-      for Model_Layers of Slot.Models loop
-         Resize (Model_Layers.Model, Model_Layers.Layers);
-      end loop;
+      Slot.Resize;
 
       Slot.Widget.Grab_Focus;
 
@@ -1089,6 +1057,7 @@ package body Lui.Gtk_UI is
                  (Model_Layer_Record'
                     (Model  => Lui.Models.Object_Model (Model),
                      Layers => (others => Cairo.Null_Surface)));
+               Slot.Resize;
                return;
             end if;
          end;
@@ -1387,6 +1356,49 @@ package body Lui.Gtk_UI is
       end;
 
    end Render_Model_Layers;
+
+   procedure Resize
+     (Slot : in out Model_Object_Record'Class)
+   is
+      procedure Resize
+        (Model  : Lui.Models.Object_Model;
+         Layers : in out Surface_Render_Layers);
+
+      ------------
+      -- Resize --
+      ------------
+
+      procedure Resize
+        (Model  : Lui.Models.Object_Model;
+         Layers : in out Surface_Render_Layers)
+      is
+         use type Cairo.Cairo_Surface;
+      begin
+
+         Model.Resize;
+
+         for Surface of Layers loop
+
+            if Surface /= Cairo.Null_Surface then
+               Cairo.Surface_Destroy (Surface);
+            end if;
+
+            Surface :=
+              Cairo.Image_Surface.Create
+                (Format => Cairo.Image_Surface.Cairo_Format_ARGB32,
+                 Width  => Glib.Gint (Model.Width),
+                 Height => Glib.Gint (Model.Height));
+         end loop;
+
+         Render_Model_Layers (Model, Layers);
+
+      end Resize;
+
+   begin
+      for Model_Layers of Slot.Models loop
+         Resize (Model_Layers.Model, Model_Layers.Layers);
+      end loop;
+   end Resize;
 
    ------------------
    -- Select_Model --
