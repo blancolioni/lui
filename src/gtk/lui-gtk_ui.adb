@@ -500,8 +500,8 @@ package body Lui.Gtk_UI is
          for X in 0 .. Bitmap_Width - 1 loop
             declare
                subtype Byte is Cairo.Image_Surface.Byte;
-               Color : constant WL.Bitmap_IO.Colour_Type :=
-                          WL.Bitmap_IO.Colour
+               Color : constant WL.Bitmap_IO.Color_Type :=
+                          WL.Bitmap_IO.Color
                             (Bitmap, X, Bitmap_Height - Y - 1);
                ARGB32 : constant Cairo.Image_Surface.ARGB32_Data :=
                           (Alpha => Byte (Color.Alpha),

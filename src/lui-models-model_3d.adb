@@ -254,7 +254,7 @@ package body Lui.Models.Model_3D is
       Detail     : in     Positive)
    is
       use Matrices;
-      Circles  : array (0 .. Detail, 0 .. 2 * Detail - 1) of Vector_3;
+      Circles  : array (0 .. Detail, 0 .. 2 * Detail - 1) of Concorde.Vectors.Vector_3;
       Heights  : array (0 .. Detail) of Real;
    begin
       for I in Heights'Range loop
@@ -288,13 +288,13 @@ package body Lui.Models.Model_3D is
                           (if Longitude_Index < 2 * Detail - 1
                            then Longitude_Index + 1
                            else 0);
-               V1     : constant Vector_3 :=
+               V1     : constant Concorde.Vectors.Vector_3 :=
                           Circles (H, Longitude_Index);
-               V2 : constant Vector_3 :=
+               V2 : constant Concorde.Vectors.Vector_3 :=
                           Circles (H, Long_1);
-               V3     : constant Vector_3 :=
+               V3     : constant Concorde.Vectors.Vector_3 :=
                           Circles (H + 1, Long_1);
-               V4     : constant Vector_3 :=
+               V4     : constant Concorde.Vectors.Vector_3 :=
                           Circles (H + 1, Longitude_Index);
             begin
                Model.Begin_Surface (Color);
@@ -543,7 +543,7 @@ package body Lui.Models.Model_3D is
       X    : constant := 0.525731112119133606;
       Z    : constant := 0.850650808352039932;
 
-      Vertex_Data : constant array (1 .. 12) of Vector_3 :=
+      Vertex_Data : constant array (1 .. 12) of Concorde.Vectors.Vector_3 :=
                       ((-X, 0.0, Z), (X, 0.0, Z), (-X, 0.0, -Z), (X, 0.0, -Z),
                        (0.0, Z, X), (0.0, Z, -X), (0.0, -Z, X), (0.0, -Z, -X),
                        (Z, X, 0.0), (-Z, X, 0.0), (Z, -X, 0.0), (-Z, -X, 0.0));
@@ -554,7 +554,7 @@ package body Lui.Models.Model_3D is
                  (11, 2, 7), (12, 1, 10), (3, 12, 10), (6, 3, 10), (12, 3, 8));
 
       procedure Subdivide
-        (V1, V2, V3 : Vector_3;
+        (V1, V2, V3 : Concorde.Vectors.Vector_3;
          Depth      : Natural);
 
       ---------------
@@ -562,7 +562,7 @@ package body Lui.Models.Model_3D is
       ---------------
 
       procedure Subdivide
-        (V1, V2, V3 : Vector_3;
+        (V1, V2, V3 : Concorde.Vectors.Vector_3;
          Depth      : Natural)
       is
       begin
@@ -574,9 +574,9 @@ package body Lui.Models.Model_3D is
             Model.End_Surface;
          else
             declare
-               V12 : Vector_3 :=  (V1 + V2) / 2.0;
-               V23 : Vector_3 :=  (V2 + V3) / 2.0;
-               V31 : Vector_3 :=  (V3 + V1) / 2.0;
+               V12 : Concorde.Vectors.Vector_3 :=  (V1 + V2) / 2.0;
+               V23 : Concorde.Vectors.Vector_3 :=  (V2 + V3) / 2.0;
+               V31 : Concorde.Vectors.Vector_3 :=  (V3 + V1) / 2.0;
             begin
                V12 := V12 / abs V12;
                V23 := V23 / abs V23;
@@ -806,7 +806,7 @@ package body Lui.Models.Model_3D is
       Detail     : in     Positive)
    is
       use Matrices;
-      Mesh : array (0 .. Detail - 1, 0 .. 2 * Detail - 1) of Vector_3;
+      Mesh : array (0 .. Detail - 1, 0 .. 2 * Detail - 1) of Concorde.Vectors.Vector_3;
    begin
       for Latitude_Index in 0 .. Detail - 1 loop
          declare
@@ -835,15 +835,15 @@ package body Lui.Models.Model_3D is
                           (if Longitude_Index < 2 * Detail - 1
                            then Longitude_Index + 1
                            else 0);
-               V1 : constant Vector_3 :=
+               V1 : constant Concorde.Vectors.Vector_3 :=
                       Mesh (Latitude_Index, Longitude_Index);
-               V2 : constant Vector_3 :=
+               V2 : constant Concorde.Vectors.Vector_3 :=
                           Mesh (Latitude_Index, Long_1);
-               V3     : constant Vector_3 :=
+               V3     : constant Concorde.Vectors.Vector_3 :=
                           (if Latitude_Index < Detail - 1
                            then Mesh (Latitude_Index + 1, Long_1)
                            else (0.0, 0.0, RZ));
-               V4     : constant Vector_3 :=
+               V4     : constant Concorde.Vectors.Vector_3 :=
                           (if Latitude_Index < Detail - 1
                            then Mesh (Latitude_Index + 1, Longitude_Index)
                            else (0.0, 0.0, RZ));
@@ -921,7 +921,7 @@ package body Lui.Models.Model_3D is
 
    procedure Vertex
      (Model : in out Root_3D_Model'Class;
-      V     : Vector_3)
+      V     : Concorde.Vectors.Vector_3)
    is
    begin
       Model.Vertex (V (1), V (2), V (3));

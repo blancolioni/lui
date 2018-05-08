@@ -9,7 +9,7 @@ package Lui.Models.Model_3D is
 
    package Matrices renames Ada.Numerics.Long_Real_Arrays;
 
-   subtype Vector_3 is Matrices.Real_Vector (1 .. 3);
+   subtype Concorde.Vectors.Vector_3 is Matrices.Real_Vector (1 .. 3);
 
    subtype Vector_4 is Matrices.Real_Vector (1 .. 4);
 
@@ -85,7 +85,7 @@ package Lui.Models.Model_3D is
 
    procedure Vertex
      (Model : in out Root_3D_Model'Class;
-      V     : Vector_3);
+      V     : Concorde.Vectors.Vector_3);
 
    procedure End_Surface
      (Model  : in out Root_3D_Model'Class);
@@ -141,7 +141,7 @@ private
 
    package Vertex_Vectors is
      new Ada.Containers.Vectors
-       (Positive, Vector_3, Matrices."=");
+       (Positive, Concorde.Vectors.Vector_3, Matrices."=");
 
    type Surface is
       record
@@ -158,7 +158,7 @@ private
 
    type Root_3D_Model is abstract new Root_Object_Model with
       record
-         Eye_Vector          : Vector_3;
+         Eye_Vector          : Concorde.Vectors.Vector_3;
          Current_Surface     : Surface;
          Current_Matrix      : Matrix_4;
          Matrices            : Matrix_Stacks.List;

@@ -12,7 +12,13 @@ package body Lui.Colors.Config is
       Child : constant Tropos.Configuration :=
                 (if Child_Name = ""
                  then Config
-                 else Config.Child (Child_Name));
+                 elsif Config.Contains (Child_Name)
+                 then Config.Child (Child_Name)
+                 elsif Config.Contains ("color")
+                 then Config.Child ("color")
+                 elsif Config.Contains ("colour")
+                 then Config.Child ("colour")
+                 else Config);
 
       R     : constant Float := Child.Get (1);
       G     : constant Float := Child.Get (2);
