@@ -461,7 +461,6 @@ package body Lui.Gtk_UI is
       Event : Gdk.Event.Gdk_Event_Configure)
       return Boolean
    is
-      use type Cairo.Cairo_Surface;
       Slot : Model_Object_Record renames
                Model_Object_Record (Self.all);
 
@@ -552,7 +551,6 @@ package body Lui.Gtk_UI is
       pragma Unreferenced (Renderer);
       use Glib;
       use type WL.Images.Layer_Count;
-      use type Cairo.Image_Surface.ARGB32_Array_Access;
 
    begin
       for Layer in 1 .. Image.Number_Of_Layers loop
@@ -658,7 +656,6 @@ package body Lui.Gtk_UI is
       Cr   : Cairo.Cairo_Context)
       return Boolean
    is
-      use Lui.Rendering;
       Slot : Model_Object_Record renames
                Model_Object_Record (Self.all);
 
@@ -894,7 +891,6 @@ package body Lui.Gtk_UI is
       return Boolean
    is
       pragma Unreferenced (W);
-      use Glib.Main;
       X : constant Integer := Integer (Event.Motion.X);
       Y : constant Integer := Integer (Event.Motion.Y);
    begin
@@ -918,7 +914,6 @@ package body Lui.Gtk_UI is
       Model : Lui.Models.Object_Model)
       return Boolean
    is
-      use Lui;
       use Glib;
       X : constant Integer := Integer (Event.Motion.X);
       Y : constant Integer := Integer (Event.Motion.Y);
@@ -1295,7 +1290,6 @@ package body Lui.Gtk_UI is
      (Model   : Lui.Models.Object_Model;
       Layers  : Surface_Render_Layers)
    is
-      use Lui.Rendering;
 
       procedure Render_Single_Model
         (M : Lui.Models.Object_Model);
@@ -1539,7 +1533,6 @@ package body Lui.Gtk_UI is
       Layer         : Render_Layer;
       Model         : Lui.Models.Object_Model)
    is
-      use type Render_Layer;
    begin
       Cairo.Save (Context);
       if Layer = Render_Layer'First then
