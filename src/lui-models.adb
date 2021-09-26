@@ -109,7 +109,8 @@ package body Lui.Models is
                            Value : in String)
    is
    begin
-      Item.Properties.Append ((new String'(Name), new String'(Value)));
+      Item.Properties.Append
+        (Property_Entry'(new String'(Name), new String'(Value)));
    end Add_Property;
 
    ------------------
